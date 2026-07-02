@@ -8,6 +8,18 @@
 > `npx tsc --noEmit`) e confira que compila antes de seguir pro próximo passo.**
 > Não faça duas telas de uma vez.
 
+> **Atualização (2026-07-02):** a extração do monólito `app/page.tsx` descrita
+> abaixo (seções 0 e 3–5) já foi concluída — fica como registro histórico do
+> porquê de decisões como "mutation individual em vez de diff manual de
+> coleção". A estrutura de pastas "flat por tipo" que a seção 1 descrevia foi
+> **substituída** por uma organização por feature de domínio
+> (`features/finance/{transactions,categories,imports,reports}`,
+> `features/projects`, `features/assets`, `features/auth`) — a seção 1 abaixo
+> já reflete essa estrutura atual. Os caminhos de arquivo citados na seção 2
+> (ex: `types/transaction.ts`, `services/project.service.ts`) são de antes
+> dessa reorganização; use a árvore da seção 1 como fonte de verdade pra onde
+> cada coisa mora hoje.
+
 ---
 
 ## 0. Contexto
@@ -23,25 +35,44 @@ Já extraí a parte "segura" (tipos, utils, services, contexts, providers,
 componentes de UI, layout, rotas vazias). **O que falta é fatiar o JSX das
 14 telas de dentro de `app/page.tsx` para os componentes de tela corretos.**
 
-## 1. Arquitetura alvo (definida pelo dono do projeto)
+## 1. Arquitetura atual (por feature de domínio)
 
 ```
-app/            → só rotas (page.tsx fino, delega pra um *Screen)
+app/                  → só rotas (page.tsx fino, delega pra um componente de feature)
+features/
+  finance/
+    transactions/     → components/, hooks/ (useTransactions), services/ (transaction.service),
+                         types/ (transaction.ts, transaction.schema.ts)
+    categories/        → components/ (CategoryManager, RulesScreen), hooks/ (useCategories, useRules),
+                         services/ (category.service), utils/ (resolveCategoryName),
+                         types/ (category.ts, rule.ts), constants.ts
+    imports/           → components/ (ImportCsvDialog), hooks/ (useCsvImport), utils/ (csv.ts)
+    reports/           → components/ (gráficos, ReportsTab), hooks/ (useReports), types/ (report.ts)
+  projects/            → components/, hooks/ (useProjects), services/ (project.service),
+                         types/ (project.ts, project.schema.ts)
+    collaboration/     → components/ (ShareDialog, PendingInvitesBanner), hooks/, services/, types/
+  assets/              → components/, hooks/ (useAssets), services/ (asset.service),
+                         types/ (asset.ts, asset.schema.ts)
+  auth/                → components/ (LoginScreen), contexts/ (AuthContext), services/ (auth.service),
+                         types/ (user.ts), schema.ts (loginSchema)
 components/
   layout/       → AppShell, Header, BottomNavigation, FloatingActionButton, PageContainer
   ui/           → primitivos shadcn puros (nunca editar à mão, nunca lógica de negócio)
-  nexo/         → wrappers customizados sobre o shadcn (NexoButton → Button, etc.)
-  projects/, transactions/, assets/, reports/, dialogs/, charts/, forms/, common/
-contexts/       → só estado global de verdade (Auth, Theme) — dados vêm de TanStack Query
-hooks/          → conversam só com services/
-services/       → toda comunicação com Supabase (nenhum componente acessa supabase direto)
-lib/            → client do Supabase, cn(), validators
-config/         → navigation.ts, constants.ts
-types/          → interfaces
-utils/          → funções puras (moeda, data, csv, cálculos)
+  nexo/         → design system genérico (NexoButton, NexoCard, NexoPage, ...) + ProfileScreen/SettingsScreen
+                   (ainda não migradas pra uma feature — não são claramente "auth")
+  dialogs/, common/, charts/, forms/, providers/
+contexts/       → só o que é de fato global e não pertence a uma feature (Theme). Auth mora em features/auth/contexts/
+hooks/          → só hooks genéricos, sem domínio (use-mobile, useDebounce, useLocalStorage, useProfile)
+services/       → só serviços genéricos usados por mais de uma feature (upload.service)
+lib/            → client do Supabase, cn()
+utils/          → funções puras sem domínio (moeda, data, cálculos)
 ```
 
-Fluxo: `Page → Screen → Components → Hooks → Services → Supabase`.
+Cada feature é dona dos próprios `components/hooks/services/types` — nada de domínio acessa Supabase
+direto fora do `services/` da própria feature. `@/*` no `tsconfig.json` aponta pra raiz, então imports
+de feature usam caminho absoluto: `@/features/finance/transactions/hooks/useTransactions`.
+
+Fluxo: `Page → Componente de feature → Hooks da feature → Services da feature → Supabase`.
 
 ## 2. O que já está pronto (não mexer, só usar)
 

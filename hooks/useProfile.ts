@@ -1,9 +1,9 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useAuth } from '@/contexts/AuthContext';
-import { getProfile, upsertProfile } from '@/services/auth.service';
-import type { UserProfile } from '@/types/user';
+import { useAuth } from '@/features/auth/contexts/AuthContext';
+import { getProfile, upsertProfile } from '@/features/auth/services/auth.service';
+import type { UserProfile } from '@/features/auth/types/user';
 
 const key = (userId?: string) => ['profile', userId] as const;
 

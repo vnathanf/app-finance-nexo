@@ -2,7 +2,7 @@
 
 import type { ReactNode } from 'react';
 import { QueryProvider } from '@/components/providers/QueryProvider';
-import { AuthProvider } from '@/contexts/AuthContext';
+import { AuthProvider } from '@/features/auth/contexts/AuthContext';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 
 /**

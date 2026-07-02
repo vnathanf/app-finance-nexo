@@ -1,4 +1,4 @@
-import LoginScreen from "@/components/nexo/LoginScreen";
+import LoginScreen from "@/features/auth/components/LoginScreen";
 
 export default function Page() {
   return <LoginScreen />;

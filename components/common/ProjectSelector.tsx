@@ -1,7 +1,7 @@
 'use client';
 
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
-import type { Project } from '@/types/project';
+import type { Project } from '@/features/projects/types/project';
 
 interface ProjectSelectorProps {
   projects: Project[];

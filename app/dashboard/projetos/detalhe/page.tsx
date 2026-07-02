@@ -1,5 +1,5 @@
 import { Suspense } from 'react';
-import ProjectDetailScreen from '@/components/projects/ProjectDetailScreen';
+import ProjectDetailScreen from '@/features/projects/components/ProjectDetailScreen';
 
 export default function Page() {
   return (

@@ -1,6 +1,6 @@
-import type { Project } from '@/types/project';
-import type { Transaction } from '@/types/transaction';
-import type { Asset } from '@/types/asset';
+import type { Project } from '@/features/projects/types/project';
+import type { Transaction } from '@/features/finance/transactions/types/transaction';
+import type { Asset } from '@/features/assets/types/asset';
 
 /** Soma do valor (patrimônio) de todos os projetos. */
 export function calculatePatrimonioLiquido(projects: Project[]): number {
