@@ -1,0 +1,8 @@
+{
+  "projects": {
+    "default": "my-app-nexo-finance",
+    "staging": "my-app-nexo-finance"
+  },
+  "targets": {},
+  "etags": {}
+}

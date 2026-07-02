@@ -1,0 +1,164 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile containing name, email, and security configurations.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique user UID from authentication" },
+        "name": { "type": "string", "description": "Display name of the user" },
+        "email": { "type": "string", "format": "email", "description": "User email address" },
+        "phone": { "type": "string", "description": "Optional phone number" },
+        "avatar": { "type": "string", "description": "Profile picture URL" },
+        "pass": { "type": "string", "description": "Local password fallback for mockup" }
+      },
+      "required": ["id", "name", "email"]
+    },
+    "Project": {
+      "title": "Project",
+      "description": "Financial project that acts as an umbrella folder of properties, cash flows, and investments.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique project identifier" },
+        "name": { "type": "string", "description": "Name of the project" },
+        "type": { "type": "string", "enum": ["Pessoal", "Imóvel", "Negócios", "Viagem", "Outro"], "description": "Underlying categorization of the project type" },
+        "sub": { "type": "string", "description": "Subheading or type description" },
+        "value": { "type": "number", "description": "Reconciled sum value of all linked assets" },
+        "isExpense": { "type": "boolean", "description": "Deprecated helper indicating if is cost-driven" },
+        "monthlyProfit": { "type": "number", "description": "Reconciled monthly net surplus (Receita minus Despesa)" },
+        "trend": { "type": "number", "description": "Monthly percentage yield or increase trend value" },
+        "receitas": { "type": "number", "description": "Dynamic sum of month incomes" },
+        "despesas": { "type": "number", "description": "Dynamic sum of month expenses" },
+        "imageUrl": { "type": "string", "description": "Header background photo URL for client UI screens" },
+        "ownerId": { "type": "string", "description": "UID of the creator/owner user document" }
+      },
+      "required": ["id", "name", "type", "ownerId"]
+    },
+    "Transaction": {
+      "title": "Transaction",
+      "description": "Individual movement of resources representing positive income flows or negative outlays/liabilities.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique transaction key" },
+        "title": { "type": "string", "description": "Direct human name description of the purchase or receipt" },
+        "type": { "type": "string", "enum": ["Receita", "Despesa"], "description": "Direction of flow" },
+        "projectId": { "type": "string", "description": "Parent project ID foreign relationship" },
+        "category": { "type": "string", "description": "Custom transaction tag label" },
+        "amount": { "type": "number", "description": "Raw money value in BRL" },
+        "date": { "type": "string", "description": "ISO String representation format of date" },
+        "ownerId": { "type": "string", "description": "UID of the session owner user" }
+      },
+      "required": ["id", "title", "type", "projectId", "category", "amount", "date", "ownerId"]
+    },
+    "Asset": {
+      "title": "Asset",
+      "description": "Tangible properties, holdings, stocks, cash reserves, or liquid assets aligned under a project folder.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique physical asset key" },
+        "name": { "type": "string", "description": "Aesthetic design label of property" },
+        "category": { "type": "string", "description": "General domain category" },
+        "subCategory": { "type": "string", "description": "Sub category context or status details" },
+        "value": { "type": "number", "description": "Current fair-market price valuation in BRL" },
+        "description": { "type": "string", "description": "Notes on purchase details or tenant rules" },
+        "city": { "type": "string", "description": "State and municipal location detail if real estate" },
+        "imageUrl": { "type": "string", "description": "Photo thumbnail" },
+        "projectId": { "type": "string", "description": "Underlying associated parent project ID" },
+        "ownerId": { "type": "string", "description": "UID of creator" }
+      },
+      "required": ["id", "name", "category", "value", "projectId", "ownerId"]
+    },
+    "CollabMember": {
+      "title": "CollabMember",
+      "description": "Collaborator members linked to shared projects.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "role": { "type": "string", "enum": ["Editor", "Leitor", "Proprietário"] },
+        "avatar": { "type": "string" },
+        "projectId": { "type": "string" },
+        "ownerId": { "type": "string" }
+      },
+      "required": ["id", "name", "email", "role", "projectId", "ownerId"]
+    },
+    "CollabInvite": {
+      "title": "CollabInvite",
+      "description": "Pending project invitation for collaborative access.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "role": { "type": "string", "enum": ["Editor", "Leitor"] },
+        "projectId": { "type": "string" },
+        "ownerId": { "type": "string" }
+      },
+      "required": ["id", "name", "email", "role", "projectId", "ownerId"]
+    },
+    "CollabActivity": {
+      "title": "CollabActivity",
+      "description": "Recent activity audit log of a project, including peer transactions updates.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "action": { "type": "string" },
+        "detail": { "type": "string" },
+        "time": { "type": "string" },
+        "type": { "type": "string" },
+        "projectId": { "type": "string" },
+        "ownerId": { "type": "string" }
+      },
+      "required": ["id", "name", "action", "detail", "time", "type", "projectId", "ownerId"]
+    },
+    "ProjectShareConfig": {
+      "title": "ProjectShareConfig",
+      "description": "Share link configuration settings.",
+      "type": "object",
+      "properties": {
+        "projectId": { "type": "string" },
+        "enabled": { "type": "boolean" },
+        "url": { "type": "string" },
+        "defaultRole": { "type": "string", "enum": ["Editor", "Leitor"] },
+        "ownerId": { "type": "string" }
+      },
+      "required": ["projectId", "enabled", "ownerId"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User settings and profile registration info mapped under their unique auth UID."
+    },
+    "/projects/{projectId}": {
+      "schema": "Project",
+      "description": "Projects folder directory owned by active authenticated users."
+    },
+    "/transactions/{transactionId}": {
+      "schema": "Transaction",
+      "description": "Financial ledger transactions mapped globally and grouped dynamically in code."
+    },
+    "/assets/{assetId}": {
+      "schema": "Asset",
+      "description": "Historic and present asset acquisitions owned by the authenticated profiles."
+    },
+    "/collabMembers/{memberId}": {
+      "schema": "CollabMember",
+      "description": "Active collaborator members with access levels per project."
+    },
+    "/collabInvites/{inviteId}": {
+      "schema": "CollabInvite",
+      "description": "Pending invites waiting acceptance by a specific email user."
+    },
+    "/collabActivities/{activityId}": {
+      "schema": "CollabActivity",
+      "description": "Recent system logs for project updates."
+    },
+    "/projectShareConfigs/{projectId}": {
+      "schema": "ProjectShareConfig",
+      "description": "URL-based project sharing configuration metadata."
+    }
+  }
+}

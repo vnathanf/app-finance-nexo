@@ -1,0 +1,6 @@
+{
+  "name": "Nexo Finance",
+  "description": "Gestão de patrimônio, projetos financeiros e transações de forma intuitiva, moderna e conectada.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

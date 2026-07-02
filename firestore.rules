@@ -1,0 +1,290 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Development helper: allow authenticated users to read/write all documents.
+    // NOTE: This is permissive and only recommended for local development/testing.
+    // For production, revert this and rely on collection-specific rules below.
+    match /{document=**} {
+      allow read, write: if request.auth != null;
+    }
+
+    // Primitive Definitions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isUserVerified() {
+      return isSignedIn();
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // Safe Email helper to prevent null/property-access crashes
+    function getEmailLower() {
+      return (request.auth != null && request.auth.token != null && request.auth.token.email != null) ? request.auth.token.email.lower() : '';
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // Access Helper Gates
+    function hasProjectAccess(projectId) {
+      return isSignedIn() && (
+        (exists(/databases/$(database)/documents/projects/$(projectId)) && get(/databases/$(database)/documents/projects/$(projectId)).data.ownerId == request.auth.uid) ||
+        (getEmailLower() != '' && exists(/databases/$(database)/documents/collabMembers/$(projectId + '_' + getEmailLower()))) ||
+        (exists(/databases/$(database)/documents/projectShareConfigs/$(projectId)) && get(/databases/$(database)/documents/projectShareConfigs/$(projectId)).data.enabled == true)
+      );
+    }
+
+    function canEditProject(projectId) {
+      return isSignedIn() && (
+        (exists(/databases/$(database)/documents/projects/$(projectId)) && get(/databases/$(database)/documents/projects/$(projectId)).data.ownerId == request.auth.uid) ||
+        (
+          getEmailLower() != '' &&
+          exists(/databases/$(database)/documents/collabMembers/$(projectId + '_' + getEmailLower())) &&
+          get(/databases/$(database)/documents/collabMembers/$(projectId + '_' + getEmailLower())).data.role == "Editor"
+        )
+      );
+    }
+
+    // Entity validation helpers
+    function isValidUser(data) {
+      return data.keys().hasAll(['id', 'name', 'email'])
+        && data.id is string && data.id.size() <= 128
+        && data.name is string && data.name.size() <= 120 && data.name.size() > 0
+        && data.email is string && data.email.size() <= 200;
+    }
+
+    function isValidProject(data) {
+      return data.keys().hasAll(['id', 'name', 'type', 'ownerId', 'sub', 'value', 'isExpense', 'monthlyProfit', 'trend', 'receitas', 'despesas'])
+        && data.id is string && data.id.size() <= 128
+        && data.name is string && data.name.size() <= 120 && data.name.size() > 0
+        && data.type is string && data.type in ['Pessoal', 'Imóvel', 'Negócios', 'Viagem', 'Outro']
+        && data.ownerId is string && data.ownerId.size() <= 128
+        && data.sub is string && data.sub.size() <= 100
+        && data.value is number
+        && data.isExpense is bool
+        && data.monthlyProfit is number
+        && data.trend is number
+        && data.receitas is number
+        && data.despesas is number
+        && (!('imageUrl' in data) || data.imageUrl == null || (data.imageUrl is string && data.imageUrl.size() <= 1000));
+    }
+
+    function isValidTransaction(data) {
+      return data.keys().hasAll(['id', 'title', 'type', 'projectId', 'category', 'amount', 'date'])
+        && data.id is string && data.id.size() <= 128
+        && data.title is string && data.title.size() <= 120 && data.title.size() > 0
+        && data.type is string && data.type in ['Receita', 'Despesa']
+        && data.projectId is string && data.projectId.size() <= 128
+        && data.category is string && data.category.size() <= 100
+        && data.amount is number
+        && data.date is string && data.date.size() <= 20;
+    }
+
+    function isValidAsset(data) {
+      return data.keys().hasAll(['id', 'name', 'category', 'value'])
+        && data.id is string && data.id.size() <= 128
+        && data.name is string && data.name.size() <= 120 && data.name.size() > 0
+        && data.category is string && data.category.size() <= 100
+        && data.value is number
+        && (!('projectId' in data) || data.projectId == null || data.projectId == "" || data.projectId == "none" || (data.projectId is string && data.projectId.size() <= 128))
+        && (!('subCategory' in data) || data.subCategory == null || (data.subCategory is string && data.subCategory.size() <= 128))
+        && (!('description' in data) || data.description == null || (data.description is string && data.description.size() <= 1000))
+        && (!('city' in data) || data.city == null || (data.city is string && data.city.size() <= 128))
+        && (!('imageUrl' in data) || data.imageUrl == null || (data.imageUrl is string && data.imageUrl.size() <= 1000))
+        && (!('customFields' in data) || data.customFields == null || data.customFields is list)
+        && (!('documents' in data) || data.documents == null || data.documents is list);
+    }
+
+    // Collection routing match rules
+    match /users/{userId} {
+      allow get: if isSignedIn() && userId == request.auth.uid;
+      allow create: if isUserVerified() && userId == request.auth.uid && isValidUser(incoming());
+      allow update: if isUserVerified() && userId == request.auth.uid && isValidUser(incoming()) && (
+        incoming().diff(existing()).affectedKeys().hasOnly(['name', 'phone', 'avatar', 'pass'])
+      );
+      allow delete: if false;
+    }
+
+    match /projects/{projectId} {
+      allow get: if isSignedIn() && isValidId(projectId) && (
+        resource == null ||
+        existing().ownerId == request.auth.uid ||
+        (getEmailLower() != '' && exists(/databases/$(database)/documents/collabMembers/$(projectId + '_' + getEmailLower()))) ||
+        (getEmailLower() != '' && exists(/databases/$(database)/documents/collabInvites/$(projectId + '_' + getEmailLower()))) ||
+        (exists(/databases/$(database)/documents/projectShareConfigs/$(projectId)) && get(/databases/$(database)/documents/projectShareConfigs/$(projectId)).data.enabled == true)
+      );
+      allow list: if isSignedIn() && (
+        resource.data.ownerId == request.auth.uid ||
+        (getEmailLower() != '' && exists(/databases/$(database)/documents/collabMembers/$(resource.data.id + '_' + getEmailLower())))
+      );
+      
+      allow create: if isUserVerified() && isValidId(projectId) && isValidProject(incoming()) && incoming().ownerId == request.auth.uid;
+      
+      allow update: if isUserVerified() && isValidId(projectId) && isValidProject(incoming()) && canEditProject(projectId) && (
+        incoming().diff(existing()).affectedKeys().hasOnly(['name', 'type', 'sub', 'imageUrl', 'value', 'receitas', 'despesas', 'monthlyProfit', 'trend', 'isExpense', 'ownerId'])
+        && (incoming().ownerId == existing().ownerId)
+      );
+      
+      allow delete: if isUserVerified() && isValidId(projectId) && existing().ownerId == request.auth.uid;
+    }
+
+    match /transactions/{transactionId} {
+      allow get: if isSignedIn() && isValidId(transactionId) && (
+        resource == null ||
+        existing().ownerId == request.auth.uid ||
+        hasProjectAccess(existing().projectId)
+      );
+      allow list: if isSignedIn() && (
+        resource.data.ownerId == request.auth.uid ||
+        (resource.data.projectId != null && getEmailLower() != '' && exists(/databases/$(database)/documents/collabMembers/$(resource.data.projectId + '_' + getEmailLower())))
+      );
+
+      allow create: if isUserVerified() && isValidId(transactionId) && isValidTransaction(incoming()) && (incoming().ownerId == request.auth.uid || canEditProject(incoming().projectId));
+
+      allow update: if isUserVerified() && isValidId(transactionId) && isValidTransaction(incoming()) && (existing().ownerId == request.auth.uid || canEditProject(existing().projectId)) && (
+        incoming().diff(existing()).affectedKeys().hasOnly(['title', 'type', 'category', 'amount', 'date', 'projectId', 'ownerId'])
+        && (incoming().ownerId == existing().ownerId)
+      );
+
+      allow delete: if isUserVerified() && isValidId(transactionId) && (existing().ownerId == request.auth.uid || canEditProject(existing().projectId));
+    }
+
+    match /assets/{assetId} {
+      allow get: if isSignedIn() && isValidId(assetId) && (
+        resource == null ||
+        existing().ownerId == request.auth.uid ||
+        (existing().projectId != null && existing().projectId != '' && existing().projectId != 'none' && hasProjectAccess(existing().projectId))
+      );
+      allow list: if isSignedIn() && (
+        resource.data.ownerId == request.auth.uid ||
+        (resource.data.projectId != null && resource.data.projectId != '' && resource.data.projectId != 'none' && getEmailLower() != '' && exists(/databases/$(database)/documents/collabMembers/$(resource.data.projectId + '_' + getEmailLower())))
+      );
+
+      allow create: if isUserVerified() && isValidId(assetId) && isValidAsset(incoming()) && (incoming().ownerId == request.auth.uid || incoming().projectId == null || incoming().projectId == "" || incoming().projectId == "none" || canEditProject(incoming().projectId));
+
+      allow update: if isUserVerified() && isValidId(assetId) && isValidAsset(incoming()) && (existing().ownerId == request.auth.uid || (existing().projectId != null && existing().projectId != '' && existing().projectId != 'none' && canEditProject(existing().projectId))) && (
+        incoming().diff(existing()).affectedKeys().hasOnly(['name', 'category', 'subCategory', 'value', 'description', 'city', 'imageUrl', 'customFields', 'documents', 'projectId', 'ownerId'])
+        && (incoming().ownerId == existing().ownerId)
+      );
+
+      allow delete: if isUserVerified() && isValidId(assetId) && (existing().ownerId == request.auth.uid || (existing().projectId != null && existing().projectId != '' && existing().projectId != 'none' && canEditProject(existing().projectId)));
+    }
+
+    // Collaboration Tables
+    match /collabMembers/{memberId} {
+      allow get: if isSignedIn() && (
+        resource == null ||
+        (exists(/databases/$(database)/documents/projects/$(existing().projectId)) && get(/databases/$(database)/documents/projects/$(existing().projectId)).data.ownerId == request.auth.uid) ||
+        (request.auth.token != null && request.auth.token.email != null && existing().email == request.auth.token.email.lower())
+      );
+      allow list: if isSignedIn() && (
+        resource.data.ownerId == request.auth.uid ||
+        (request.auth.token != null && request.auth.token.email != null && resource.data.email == request.auth.token.email.lower())
+      );
+
+      allow create: if isSignedIn() && (
+        (exists(/databases/$(database)/documents/projects/$(incoming().projectId)) && get(/databases/$(database)/documents/projects/$(incoming().projectId)).data.ownerId == request.auth.uid) ||
+        (exists(/databases/$(database)/documents/projectShareConfigs/$(incoming().projectId)) && get(/databases/$(database)/documents/projectShareConfigs/$(incoming().projectId)).data.enabled == true) ||
+        (
+          getEmailLower() != '' &&
+          (incoming().email == getEmailLower()) &&
+          (
+            memberId == incoming().projectId + '_' + getEmailLower() ||
+            memberId == incoming().projectId + '_' + incoming().email.lower()
+          ) &&
+          (
+            exists(/databases/$(database)/documents/collabInvites/$(incoming().projectId + '_' + getEmailLower())) ||
+            exists(/databases/$(database)/documents/collabInvites/$(incoming().projectId + '_' + incoming().email.lower())) ||
+            exists(/databases/$(database)/documents/collabInvites/$(memberId))
+          )
+        )
+      );
+
+      allow update: if isSignedIn() && (
+        exists(/databases/$(database)/documents/projects/$(existing().projectId)) && get(/databases/$(database)/documents/projects/$(existing().projectId)).data.ownerId == request.auth.uid
+      ) && incoming().diff(existing()).affectedKeys().hasOnly(['role']);
+
+      allow delete: if isSignedIn() && (
+        (exists(/databases/$(database)/documents/projects/$(existing().projectId)) && get(/databases/$(database)/documents/projects/$(existing().projectId)).data.ownerId == request.auth.uid) ||
+        (request.auth.token != null && request.auth.token.email != null && existing().email == request.auth.token.email.lower())
+      );
+    }
+
+    match /collabInvites/{inviteId} {
+      allow get: if isSignedIn() && (
+        resource == null ||
+        (exists(/databases/$(database)/documents/projects/$(existing().projectId)) && get(/databases/$(database)/documents/projects/$(existing().projectId)).data.ownerId == request.auth.uid) ||
+        (request.auth.token != null && request.auth.token.email != null && existing().email == request.auth.token.email.lower())
+      );
+      allow list: if isSignedIn() && (
+        resource.data.ownerId == request.auth.uid ||
+        (request.auth.token != null && request.auth.token.email != null && resource.data.email == request.auth.token.email.lower())
+      );
+
+      allow create: if isSignedIn() && exists(/databases/$(database)/documents/projects/$(incoming().projectId)) && get(/databases/$(database)/documents/projects/$(incoming().projectId)).data.ownerId == request.auth.uid;
+
+      allow update: if isSignedIn() && (
+        exists(/databases/$(database)/documents/projects/$(existing().projectId)) && get(/databases/$(database)/documents/projects/$(existing().projectId)).data.ownerId == request.auth.uid
+      ) && incoming().diff(existing()).affectedKeys().hasOnly(['role']);
+
+      allow delete: if isSignedIn() && (
+        (exists(/databases/$(database)/documents/projects/$(existing().projectId)) && get(/databases/$(database)/documents/projects/$(existing().projectId)).data.ownerId == request.auth.uid) ||
+        (request.auth.token != null && request.auth.token.email != null && existing().email == request.auth.token.email.lower()) ||
+        (getEmailLower() != '' && existing().email == getEmailLower()) ||
+        (getEmailLower() != '' && inviteId == existing().projectId + '_' + getEmailLower())
+      );
+    }
+
+    match /collabActivities/{activityId} {
+      allow get: if isSignedIn() && (
+        resource == null ||
+        hasProjectAccess(existing().projectId)
+      );
+      allow list: if isSignedIn() && (
+        resource.data.ownerId == request.auth.uid ||
+        (resource.data.projectId != null && getEmailLower() != '' && exists(/databases/$(database)/documents/collabMembers/$(resource.data.projectId + '_' + getEmailLower())))
+      );
+
+      allow create: if isSignedIn() && (
+        canEditProject(incoming().projectId) ||
+        hasProjectAccess(incoming().projectId) ||
+        (getEmailLower() != '' && exists(/databases/$(database)/documents/collabInvites/$(incoming().projectId + '_' + getEmailLower()))) ||
+        (getEmailLower() != '' && exists(/databases/$(database)/documents/collabMembers/$(incoming().projectId + '_' + getEmailLower()))) ||
+        (exists(/databases/$(database)/documents/projects/$(incoming().projectId)) && get(/databases/$(database)/documents/projects/$(incoming().projectId)).data.ownerId == request.auth.uid)
+      );
+      allow update, delete: if false;
+    }
+
+    match /projectShareConfigs/{projectId} {
+      allow get: if true; // anyone can get configs to see public status
+      allow list: if isSignedIn() && (
+        resource.data.ownerId == request.auth.uid ||
+        (resource.data.projectId != null && getEmailLower() != '' && exists(/databases/$(database)/documents/collabMembers/$(resource.data.projectId + '_' + getEmailLower())))
+      );
+
+      allow create: if isSignedIn() && (
+        (exists(/databases/$(database)/documents/projects/$(incoming().projectId)) && get(/databases/$(database)/documents/projects/$(incoming().projectId)).data.ownerId == request.auth.uid) ||
+        incoming().ownerId == request.auth.uid
+      );
+
+      allow update: if isSignedIn() && (
+        (exists(/databases/$(database)/documents/projects/$(projectId)) && get(/databases/$(database)/documents/projects/$(projectId)).data.ownerId == request.auth.uid) ||
+        existing().ownerId == request.auth.uid
+      );
+
+      allow delete: if isSignedIn() && (
+        (exists(/databases/$(database)/documents/projects/$(projectId)) && get(/databases/$(database)/documents/projects/$(projectId)).data.ownerId == request.auth.uid) ||
+        existing().ownerId == request.auth.uid
+      );
+    }
+  }
+}
