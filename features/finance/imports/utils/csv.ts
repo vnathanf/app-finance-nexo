@@ -109,6 +109,21 @@ export function addMonthsToISO(dateISO: string, months: number): string {
 }
 
 /**
+ * Converte um valor de extrato bancário (ex: "R$ 1.160,84", "-R$ 50,00", "(50,00)")
+ * em número, descartando símbolo de moeda e espaços e preservando o sinal —
+ * inclusive o formato contábil entre parênteses para negativo.
+ */
+function parseAmount(raw: string): number {
+  const isParenNegative = /\(.*\)/.test(raw);
+  const cleaned = raw
+    .replace(/[^\d,.-]/g, '')
+    .replace(/\./g, '')
+    .replace(',', '.');
+  const value = parseFloat(cleaned) || 0;
+  return isParenNegative ? -Math.abs(value) : value;
+}
+
+/**
  * Converte linhas cruas em transações candidatas, usando o mapeamento de colunas
  * escolhido pelo usuário. Linhas sem data válida (ex: "SALDO ANTERIOR" de extrato)
  * ou repetidas (mesmo título+data+valor) são descartadas.
@@ -117,8 +132,7 @@ export function buildTransactionRows(rows: ParsedCsvRow[], mapping: ColumnMappin
   const seen = new Set<string>();
   return rows
     .map((row) => {
-      const rawAmount = (row[mapping.amount] ?? '0').replace(/\./g, '').replace(',', '.');
-      const amount = parseFloat(rawAmount) || 0;
+      const amount = parseAmount(row[mapping.amount] ?? '0');
       const date = parseDateToISO(row[mapping.date] ?? '');
       const notes = mapping.notes ? row[mapping.notes]?.trim() || undefined : undefined;
 
