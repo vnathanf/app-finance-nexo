@@ -22,6 +22,7 @@ export default function ProjectDialog({ project, open, onOpenChange, isSaving = 
       type: values.type,
       sub: values.type,
       imageUrl: values.imageUrl || undefined,
+      customFields: values.customFields,
     });
     onOpenChange(false);
   };
@@ -33,7 +34,12 @@ export default function ProjectDialog({ project, open, onOpenChange, isSaving = 
           <DialogTitle>Editar projeto</DialogTitle>
         </DialogHeader>
         <ProjectForm
-          initialValues={{ name: project.name, type: project.type, imageUrl: project.imageUrl ?? '' }}
+          initialValues={{
+            name: project.name,
+            type: project.type,
+            imageUrl: project.imageUrl ?? '',
+            customFields: project.customFields,
+          }}
           submitLabel="Salvar alterações"
           isSubmitting={isSaving}
           onSubmit={(values) => void handleSubmit(values)}

@@ -8,7 +8,7 @@ import { projectSchema } from '@/features/projects/types/project.schema';
 import { cn, generatePureId } from '@/lib/utils';
 import { uploadFile } from '@/services/upload.service';
 import { getErrorMessage } from '@/utils/errors';
-import type { ProjectType } from '@/features/projects/types/project';
+import type { ProjectType, ProjectCustomField } from '@/features/projects/types/project';
 
 const PROJECT_TYPES: ProjectType[] = ['Pessoal', 'Negócios', 'Planejamento'];
 
@@ -24,6 +24,7 @@ export interface ProjectFormValues {
   name: string;
   type: ProjectType;
   imageUrl: string;
+  customFields: ProjectCustomField[];
 }
 
 interface ProjectFormProps {
@@ -44,9 +45,19 @@ export default function ProjectForm({
   const [name, setName] = useState(initialValues?.name ?? '');
   const [type, setType] = useState<ProjectType>(initialValues?.type ?? 'Pessoal');
   const [imageUrl, setImageUrl] = useState(initialValues?.imageUrl ?? '');
+  const [customFields, setCustomFields] = useState<ProjectCustomField[]>(initialValues?.customFields ?? []);
+  const [newFieldLabel, setNewFieldLabel] = useState('');
+  const [newFieldValue, setNewFieldValue] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isDragActive, setIsDragActive] = useState(false);
+
+  const handleAddCustomField = () => {
+    if (!newFieldLabel.trim() || !newFieldValue.trim()) return;
+    setCustomFields((prev) => [...prev, { label: newFieldLabel.trim(), value: newFieldValue.trim() }]);
+    setNewFieldLabel('');
+    setNewFieldValue('');
+  };
 
   const handleFile = async (file: File) => {
     if (!file.type.startsWith('image/')) {
@@ -80,7 +91,7 @@ export default function ProjectForm({
       return;
     }
     setError(null);
-    onSubmit(result.data as ProjectFormValues);
+    onSubmit({ ...result.data, imageUrl: result.data.imageUrl ?? '', customFields });
   };
 
   return (
@@ -180,6 +191,41 @@ export default function ProjectForm({
               if (file) void handleFile(file);
             }}
           />
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <label className="text-sm font-medium">Especificações adicionais (opcional)</label>
+
+        {customFields.length > 0 && (
+          <div className="flex flex-wrap gap-1.5">
+            {customFields.map((field, idx) => (
+              <span key={idx} className="flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs font-medium">
+                <strong>{field.label}:</strong> {field.value}
+                <button
+                  type="button"
+                  onClick={() => setCustomFields((prev) => prev.filter((_, i) => i !== idx))}
+                  className="text-muted-foreground hover:text-destructive"
+                >
+                  <X className="size-3" />
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
+
+        <div className="flex items-end gap-1.5 rounded-xl border border-border bg-muted/40 p-2.5">
+          <div className="flex-1 space-y-1">
+            <span className="text-xs text-muted-foreground">Rótulo</span>
+            <Input value={newFieldLabel} onChange={(e) => setNewFieldLabel(e.target.value)} placeholder="Ex: Documento" />
+          </div>
+          <div className="flex-1 space-y-1">
+            <span className="text-xs text-muted-foreground">Valor</span>
+            <Input value={newFieldValue} onChange={(e) => setNewFieldValue(e.target.value)} placeholder="Ex: 123.456" />
+          </div>
+          <NexoButton type="button" size="icon" onClick={handleAddCustomField}>
+            +
+          </NexoButton>
         </div>
       </div>
 

@@ -38,6 +38,10 @@ export default function RulesScreen() {
   const [editKeyword, setEditKeyword] = useState('');
   const [editCategoryId, setEditCategoryId] = useState('');
 
+  // Sempre volta pra aba de Transações do projeto — não pra "Visão geral"
+  // (default da tela de detalhe) nem pra qualquer página anterior no histórico.
+  const backToTransactions = () => router.push(`/dashboard/projetos/detalhe?id=${projectId}&tab=transacoes`);
+
   if (!projectId) {
     return (
       <NexoPage title="Regras inteligentes" onBack={() => router.back()}>
@@ -51,7 +55,7 @@ export default function RulesScreen() {
       <div className="mb-4 flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <button
-            onClick={() => router.back()}
+            onClick={backToTransactions}
             aria-label="Voltar"
             className="rounded-lg p-1.5 text-muted-foreground transition hover:bg-muted"
           >

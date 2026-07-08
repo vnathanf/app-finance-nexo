@@ -25,6 +25,7 @@ export interface DBProject {
   despesas: number;
   image_url?: string | null;
   goal_amount?: number | null;
+  custom_fields?: { label: string; value: string }[];
 }
 
 export interface DBTransaction {

@@ -1,5 +1,10 @@
 export type ProjectType = 'Pessoal' | 'Negócios' | 'Planejamento';
 
+export interface ProjectCustomField {
+  label: string;
+  value: string;
+}
+
 export interface Project {
   id: string;
   ownerId: string;
@@ -16,4 +21,6 @@ export interface Project {
   imageUrl?: string;
   /** Valor-alvo pra projetos de planejamento (viagem, compra de um bem etc). Editado na tela de Relatórios. */
   goalAmount?: number;
+  /** Especificações adicionais (rótulo/valor), editadas no formulário do projeto e exibidas na Visão geral. */
+  customFields: ProjectCustomField[];
 }

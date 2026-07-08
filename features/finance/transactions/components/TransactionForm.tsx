@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, type FormEvent } from 'react';
+import { Plus, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
@@ -9,10 +10,13 @@ import { transactionSchema } from '@/features/finance/transactions/types/transac
 import { cn } from '@/lib/utils';
 import { todayISO } from '@/utils/date';
 import { useRules } from '@/features/finance/categories/hooks/useRules';
+import { useCategories } from '@/features/finance/categories/hooks/useCategories';
 import { matchRuleForTitle } from '@/features/finance/categories/utils/matchRule';
 import { resolveDefaultCategoryId } from '@/features/finance/categories/utils/category';
 import type { TransactionType } from '@/features/finance/transactions/types/transaction';
 import type { Category } from '@/features/finance/categories/types/category';
+
+const NEW_CATEGORY_VALUE = '__new__';
 
 export interface TransactionFormValues {
   title: string;
@@ -45,6 +49,7 @@ export default function TransactionForm({
   onCancel,
 }: TransactionFormProps) {
   const { rules } = useRules(projectId);
+  const { addCategory, isAddingCategory } = useCategories();
   const [title, setTitle] = useState(initialValues?.title ?? '');
   const [type, setType] = useState<TransactionType>(initialValues?.type ?? 'Receita');
   const [categoryId, setCategoryId] = useState(initialValues?.categoryId ?? resolveDefaultCategoryId(categories) ?? '');
@@ -53,6 +58,8 @@ export default function TransactionForm({
   const [date, setDate] = useState(initialValues?.date ?? todayISO());
   const [notes, setNotes] = useState(initialValues?.notes ?? '');
   const [error, setError] = useState<string | null>(null);
+  const [isCreatingCategory, setIsCreatingCategory] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
 
   // Ao criar (não editar) uma transação, sugere a categoria pela regra que
   // bater com a descrição digitada — só enquanto o usuário não escolher uma
@@ -65,8 +72,22 @@ export default function TransactionForm({
   };
 
   const handleCategoryChange = (value: string) => {
+    if (value === NEW_CATEGORY_VALUE) {
+      setIsCreatingCategory(true);
+      return;
+    }
     setCategoryId(value);
     setCategoryTouched(true);
+  };
+
+  const handleCreateCategory = async () => {
+    const id = await addCategory(newCategoryName);
+    if (id) {
+      setCategoryId(id);
+      setCategoryTouched(true);
+    }
+    setNewCategoryName('');
+    setIsCreatingCategory(false);
   };
 
   const handleSubmit = (e: FormEvent) => {
@@ -138,6 +159,11 @@ export default function TransactionForm({
                   {cat.name}
                 </SelectItem>
               ))}
+              <SelectItem value={NEW_CATEGORY_VALUE} className="font-medium text-primary">
+                <span className="inline-flex items-center gap-1">
+                  <Plus className="size-3.5" /> Nova categoria
+                </span>
+              </SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -154,6 +180,44 @@ export default function TransactionForm({
           />
         </div>
       </div>
+
+      {isCreatingCategory && (
+        <div className="flex items-center gap-1.5 rounded-lg border border-dashed border-primary/40 bg-primary/5 p-2">
+          <Input
+            autoFocus
+            value={newCategoryName}
+            onChange={(e) => setNewCategoryName(e.target.value)}
+            placeholder="Nome da nova categoria"
+            className="h-8 text-sm"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                void handleCreateCategory();
+              }
+            }}
+          />
+          <NexoButton
+            type="button"
+            size="sm"
+            disabled={!newCategoryName.trim()}
+            loading={isAddingCategory}
+            onClick={handleCreateCategory}
+          >
+            Criar
+          </NexoButton>
+          <button
+            type="button"
+            onClick={() => {
+              setIsCreatingCategory(false);
+              setNewCategoryName('');
+            }}
+            aria-label="Cancelar"
+            className="rounded-md p-1.5 text-muted-foreground transition hover:bg-muted hover:text-foreground"
+          >
+            <X className="size-4" />
+          </button>
+        </div>
+      )}
 
       <div className="space-y-1.5">
         <label className="text-sm font-medium">Data</label>

@@ -48,7 +48,7 @@ export function useCategories() {
   const categories = query.data ?? [];
 
   const upsert = useMutation({
-    mutationFn: (name: string) => saveCategory({ id: generatePureId('cat'), name }, ownerId!),
+    mutationFn: (category: { id: string; name: string }) => saveCategory(category, ownerId!),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: key(ownerId) }),
   });
 
@@ -57,11 +57,14 @@ export function useCategories() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: key(ownerId) }),
   });
 
-  const addCategory = (name: string) => {
+  /** Cria a categoria (ou reaproveita uma já existente com o mesmo nome) e devolve o id — útil pra já selecioná-la em seguida. */
+  const addCategory = (name: string): Promise<string | undefined> => {
     const trimmed = name.trim();
-    if (!trimmed || !ownerId) return;
-    if (categories.some((c) => c.name.toLowerCase() === trimmed.toLowerCase())) return;
-    upsert.mutate(trimmed);
+    if (!trimmed || !ownerId) return Promise.resolve(undefined);
+    const existing = categories.find((c) => c.name.toLowerCase() === trimmed.toLowerCase());
+    if (existing) return Promise.resolve(existing.id);
+    const id = generatePureId('cat');
+    return upsert.mutateAsync({ id, name: trimmed }).then(() => id);
   };
 
   return {

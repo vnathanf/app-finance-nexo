@@ -1,8 +1,6 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { TrendingDown, TrendingUp } from 'lucide-react';
-import NexoEmpty from '@/components/nexo/NexoEmpty';
 import Currency from '@/components/common/Currency';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import ExpenseChart from '@/features/finance/reports/components/ExpenseChart';
@@ -10,10 +8,8 @@ import { useReports } from '@/features/finance/reports/hooks/useReports';
 import { useTransactions } from '@/features/finance/transactions/hooks/useTransactions';
 import { cn } from '@/lib/utils';
 import { useCategories } from '@/features/finance/categories/hooks/useCategories';
-import { resolveCategoryName } from '@/features/finance/categories/utils/category';
 import { getMonthName, toMonthKey, todayISO } from '@/utils/date';
 import type { Project } from '@/features/projects/types/project';
-import type { Transaction } from '@/features/finance/transactions/types/transaction';
 import type { TransactionTab } from '@/features/finance/transactions/components/TransactionFilters';
 
 const COMMITMENT_STYLES = {
@@ -39,11 +35,10 @@ const COMMITMENT_STYLES = {
 
 interface ProjectOverviewTabProps {
   project: Project;
-  recentTransactions: Transaction[];
   onViewAllTransactions: (filter?: TransactionTab) => void;
 }
 
-export default function ProjectOverviewTab({ project, recentTransactions, onViewAllTransactions }: ProjectOverviewTabProps) {
+export default function ProjectOverviewTab({ project, onViewAllTransactions }: ProjectOverviewTabProps) {
   const { categories } = useCategories();
   const { transactions } = useTransactions();
   const [selectedPeriod, setSelectedPeriod] = useState<string>(() => toMonthKey(todayISO()));
@@ -180,42 +175,20 @@ export default function ProjectOverviewTab({ project, recentTransactions, onView
       <ExpenseChart data={categoryBreakdown} categories={categories} />
 
       <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <p className="text-sm font-semibold">Últimas transações</p>
-          <button onClick={() => onViewAllTransactions()} className="text-xs font-medium text-primary hover:underline">
-            Ver todas
-          </button>
-        </div>
+        <p className="text-sm font-semibold">Especificações adicionais</p>
 
-        {recentTransactions.length === 0 ? (
-          <NexoEmpty title="Nenhuma transação registrada neste projeto" />
+        {project.customFields.length === 0 ? (
+          <p className="rounded-xl border border-border bg-card p-4 text-center text-sm text-muted-foreground">
+            Nenhuma especificação cadastrada. Edite o projeto pra adicionar.
+          </p>
         ) : (
-          <div className="space-y-2">
-            {recentTransactions.map((tx) => (
-              <div key={tx.id} className="flex items-center justify-between rounded-xl border border-border bg-card p-3">
-                <div className="flex items-center gap-2.5">
-                  <div
-                    className={cn(
-                      'flex size-8 items-center justify-center rounded-lg',
-                      tx.type === 'Receita' ? 'bg-emerald-50' : 'bg-red-50'
-                    )}
-                  >
-                    {tx.type === 'Receita' ? (
-                      <TrendingUp className="size-4 text-emerald-600" />
-                    ) : (
-                      <TrendingDown className="size-4 text-red-600" />
-                    )}
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold">{tx.title}</p>
-                    <p className="text-xs text-muted-foreground">{resolveCategoryName(categories, tx.categoryId)}</p>
-                  </div>
-                </div>
-                <Currency
-                  value={tx.type === 'Receita' ? tx.amount : -tx.amount}
-                  signed
-                  className="text-sm font-semibold"
-                />
+          <div className="grid grid-cols-2 gap-2">
+            {project.customFields.map((field, idx) => (
+              <div key={idx} className="rounded-xl border border-border bg-card p-2.5">
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  {field.label}
+                </p>
+                <p className="truncate text-sm font-semibold">{field.value}</p>
               </div>
             ))}
           </div>

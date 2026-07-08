@@ -48,7 +48,7 @@ export default function AssetDetailScreen() {
       <div className="mb-4 flex items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-2">
           <Link
-            href={`/dashboard/projetos/detalhe?id=${asset.projectId}`}
+            href={`/dashboard/projetos/detalhe?id=${asset.projectId}&tab=patrimonio`}
             className="shrink-0 rounded-lg p-1.5 text-muted-foreground transition hover:bg-muted"
           >
             <ArrowLeft className="size-5" />
@@ -179,7 +179,7 @@ export default function AssetDetailScreen() {
         variant="destructive"
         onConfirm={async () => {
           await deleteAsset(asset.id);
-          router.push(`/dashboard/projetos/detalhe?id=${asset.projectId}`);
+          router.push(`/dashboard/projetos/detalhe?id=${asset.projectId}&tab=patrimonio`);
         }}
       />
     </NexoPage>

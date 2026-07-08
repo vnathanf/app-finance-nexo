@@ -17,6 +17,7 @@ function fromDB(row: DBProject): Project {
     despesas: row.despesas || 0,
     imageUrl: row.image_url ?? undefined,
     goalAmount: row.goal_amount ?? undefined,
+    customFields: row.custom_fields ?? [],
   };
 }
 
@@ -35,6 +36,7 @@ function toDB(project: Project, ownerId: string): DBProject {
     despesas: project.despesas || 0,
     image_url: project.imageUrl ?? null,
     goal_amount: project.goalAmount ?? null,
+    custom_fields: project.customFields ?? [],
   };
 }
 

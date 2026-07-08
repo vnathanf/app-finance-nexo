@@ -23,6 +23,8 @@ import { deriveProjectsWithLiveTotals } from '@/utils/calculations';
 
 type Tab = 'geral' | 'transacoes' | 'patrimonio' | 'relatorios';
 
+const TABS: Tab[] = ['geral', 'transacoes', 'patrimonio', 'relatorios'];
+
 export default function ProjectDetailScreen() {
   const searchParams = useSearchParams();
   const projectId = searchParams.get('id') ?? '';
@@ -32,7 +34,12 @@ export default function ProjectDetailScreen() {
   const { assets, isLoading: isLoadingAssets } = useAssets();
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isShareOpen, setIsShareOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<Tab>('geral');
+  // A aba inicial pode vir da URL (?tab=transacoes) — usado ao voltar de telas
+  // como Regras inteligentes, que precisam reabrir direto na aba certa.
+  const initialTab = searchParams.get('tab');
+  const [activeTab, setActiveTab] = useState<Tab>(
+    TABS.includes(initialTab as Tab) ? (initialTab as Tab) : 'geral'
+  );
   const [txInitialFilter, setTxInitialFilter] = useState<TransactionTab | undefined>(undefined);
 
   const liveProjects = useMemo(
@@ -41,11 +48,6 @@ export default function ProjectDetailScreen() {
   );
 
   const project = liveProjects.find((p) => p.id === projectId) ?? null;
-
-  const recentTransactions = useMemo(
-    () => transactions.filter((t) => t.projectId === projectId).slice(0, 3),
-    [transactions, projectId]
-  );
 
   if (isLoadingProjects || isLoadingTx || isLoadingAssets) {
     return (
@@ -108,7 +110,6 @@ export default function ProjectDetailScreen() {
           <TabsContent value="geral">
             <ProjectOverviewTab
               project={project}
-              recentTransactions={recentTransactions}
               onViewAllTransactions={(filter) => {
                 setTxInitialFilter(filter);
                 setActiveTab('transacoes');

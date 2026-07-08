@@ -40,6 +40,7 @@ export default function NewProjectScreen() {
             receitas: 0,
             despesas: 0,
             imageUrl: values.imageUrl || undefined,
+            customFields: values.customFields,
           });
           router.push('/dashboard/projetos');
         }}
