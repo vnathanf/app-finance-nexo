@@ -37,6 +37,8 @@ export function useMyInvites() {
     invites: query.data ?? [],
     isLoading: query.isLoading,
     acceptInvite: accept.mutateAsync,
+    isAcceptingInvite: (inviteId: string) => accept.isPending && accept.variables === inviteId,
     declineInvite: decline.mutateAsync,
+    isDecliningInvite: (inviteId: string) => decline.isPending && decline.variables === inviteId,
   };
 }

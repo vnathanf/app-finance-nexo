@@ -9,4 +9,5 @@ export interface Transaction {
   amount: number;
   /** YYYY-MM-DD */
   date: string;
+  notes?: string;
 }

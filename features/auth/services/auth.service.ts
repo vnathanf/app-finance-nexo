@@ -31,6 +31,15 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
   return { id: data.user.id, email: data.user.email ?? '' };
 }
 
+export type UserApprovalStatus = 'pending' | 'approved' | 'rejected';
+
+/** Status de aprovação do cadastro (ver migration 0006_user_approval.sql). */
+export async function getUserStatus(userId: string): Promise<UserApprovalStatus | null> {
+  const { data, error } = await supabase.from('users').select('status').eq('id', userId).maybeSingle();
+  if (error) throw error;
+  return (data?.status as UserApprovalStatus | undefined) ?? null;
+}
+
 /** Assina o evento de troca de sessão (login/logout). Retorna a função de unsubscribe. */
 export function onAuthChange(callback: (user: AuthUser | null) => void) {
   const {

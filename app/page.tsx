@@ -7,12 +7,17 @@ import { useAuth } from '@/features/auth/contexts/AuthContext';
 
 export default function Home() {
   const router = useRouter();
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, status } = useAuth();
 
   useEffect(() => {
     if (isLoading) return;
-    router.replace(user ? '/dashboard/projetos' : '/login');
-  }, [isLoading, user, router]);
+    if (!user) {
+      router.replace('/login');
+      return;
+    }
+    if (status === null) return; // ainda carregando o status de aprovação
+    router.replace(status === 'approved' ? '/dashboard/projetos' : '/pendente');
+  }, [isLoading, user, status, router]);
 
   return (
     <div className="flex min-h-screen items-center justify-center">

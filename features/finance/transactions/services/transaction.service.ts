@@ -1,4 +1,5 @@
 import { supabase, type DBTransaction } from '@/lib/supabase';
+import { subscribeToTableChanges } from '@/lib/realtimeChannel';
 import type { Transaction } from '@/features/finance/transactions/types/transaction';
 
 function fromDB(row: DBTransaction): Transaction {
@@ -10,6 +11,7 @@ function fromDB(row: DBTransaction): Transaction {
     categoryId: row.category_id,
     amount: row.amount,
     date: row.date,
+    notes: row.notes ?? undefined,
   };
 }
 
@@ -23,6 +25,7 @@ function toDB(tx: Transaction, ownerId: string): DBTransaction {
     category_id: tx.categoryId || '',
     amount: tx.amount || 0,
     date: tx.date || '',
+    notes: tx.notes || null,
   };
 }
 
@@ -47,20 +50,28 @@ export async function saveTransaction(tx: Transaction, ownerId: string): Promise
   if (error) throw error;
 }
 
+/** Insere cópias novas (ids/datas já definidos pelo chamador) — usado pelo "duplicar selecionadas". */
+export async function duplicateTransactions(transactions: Transaction[], ownerId: string): Promise<void> {
+  const { error } = await supabase.from('transactions').insert(transactions.map((tx) => toDB(tx, ownerId)));
+  if (error) throw error;
+}
+
 export async function removeTransaction(id: string): Promise<void> {
   const { error } = await supabase.from('transactions').delete().eq('id', id);
   if (error) throw error;
 }
 
+export async function removeTransactions(ids: string[]): Promise<void> {
+  const { error } = await supabase.from('transactions').delete().in('id', ids);
+  if (error) throw error;
+}
+
+export async function updateTransactionsCategory(ids: string[], categoryId: string): Promise<void> {
+  const { error } = await supabase.from('transactions').update({ category_id: categoryId }).in('id', ids);
+  if (error) throw error;
+}
+
 /** Sem filtro de owner_id: precisa notificar sobre mudanças em projetos compartilhados também. */
 export function subscribeToTransactions(onChange: () => void) {
-  // Nome de canal único por chamada: evita reusar um canal já inscrito quando
-  // múltiplos componentes chamam o hook ao mesmo tempo (ver project.service.ts).
-  const channel = supabase
-    .channel(`own-transactions-${crypto.randomUUID()}`)
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'transactions' }, onChange)
-    .subscribe();
-  return () => {
-    void supabase.removeChannel(channel);
-  };
+  return subscribeToTableChanges('transactions', onChange);
 }

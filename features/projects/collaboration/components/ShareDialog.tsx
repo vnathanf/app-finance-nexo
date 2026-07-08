@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, type FormEvent } from 'react';
-import { Trash2, X } from 'lucide-react';
+import { Loader2, Trash2, X } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
@@ -20,7 +20,7 @@ interface ShareDialogProps {
 }
 
 export default function ShareDialog({ projectId, open, onOpenChange, canManage }: ShareDialogProps) {
-  const { members, invites, isLoading, inviteMember, cancelInvite, updateMemberRole, removeMember } =
+  const { members, invites, isLoading, inviteMember, cancelInvite, isCancelingInvite, updateMemberRole, removeMember } =
     useCollaboration(projectId);
   const [email, setEmail] = useState('');
   const [role, setRole] = useState<CollabRole>('Leitor');
@@ -73,7 +73,7 @@ export default function ShareDialog({ projectId, open, onOpenChange, canManage }
                     <SelectItem value="Leitor">Leitor</SelectItem>
                   </SelectContent>
                 </Select>
-                <NexoButton type="submit" disabled={isSubmitting}>
+                <NexoButton type="submit" loading={isSubmitting}>
                   Convidar
                 </NexoButton>
               </div>
@@ -152,10 +152,15 @@ export default function ShareDialog({ projectId, open, onOpenChange, canManage }
                         </div>
                         <button
                           onClick={() => cancelInvite(invite.id)}
+                          disabled={isCancelingInvite(invite.id)}
                           aria-label="Cancelar convite"
-                          className="rounded-md p-1.5 text-muted-foreground transition hover:bg-destructive/10 hover:text-destructive"
+                          className="rounded-md p-1.5 text-muted-foreground transition hover:bg-destructive/10 hover:text-destructive disabled:opacity-50"
                         >
-                          <X className="size-3.5" />
+                          {isCancelingInvite(invite.id) ? (
+                            <Loader2 className="size-3.5 animate-spin" />
+                          ) : (
+                            <X className="size-3.5" />
+                          )}
                         </button>
                       </div>
                     ))}
@@ -174,7 +179,9 @@ export default function ShareDialog({ projectId, open, onOpenChange, canManage }
         description="Essa pessoa perde o acesso ao projeto imediatamente."
         confirmLabel="Sim, remover"
         variant="destructive"
-        onConfirm={() => memberToRemove && removeMember(memberToRemove)}
+        onConfirm={async () => {
+          if (memberToRemove) await removeMember(memberToRemove);
+        }}
       />
     </Dialog>
   );

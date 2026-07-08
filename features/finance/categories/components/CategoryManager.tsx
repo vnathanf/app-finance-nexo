@@ -1,14 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import { X } from 'lucide-react';
+import { Loader2, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import NexoButton from '@/components/nexo/NexoButton';
 import { useCategories } from '@/features/finance/categories/hooks/useCategories';
-import { DEFAULT_CATEGORIES } from '@/features/finance/categories/constants';
 
 export default function CategoryManager() {
-  const { categories, addCategory, removeCategory } = useCategories();
+  const { categories, addCategory, isAddingCategory, removeCategory, isRemovingCategory } = useCategories();
   const [newCategory, setNewCategory] = useState('');
 
   return (
@@ -20,9 +19,11 @@ export default function CategoryManager() {
           value={newCategory}
           onChange={(e) => setNewCategory(e.target.value)}
           placeholder="Ex: Marketing, Investimentos..."
+          disabled={isAddingCategory}
         />
         <NexoButton
           type="button"
+          loading={isAddingCategory}
           onClick={() => {
             addCategory(newCategory);
             setNewCategory('');
@@ -33,19 +34,24 @@ export default function CategoryManager() {
       </div>
 
       <div className="flex max-h-24 flex-wrap gap-1.5 overflow-y-auto pt-1">
-        {categories.map((cat) => (
-          <span
-            key={cat.id}
-            className="inline-flex items-center gap-1 rounded-md border border-border bg-muted px-2 py-0.5 text-xs font-medium"
-          >
-            {cat.name}
-            {!(DEFAULT_CATEGORIES as readonly string[]).includes(cat.name) && (
-              <button onClick={() => removeCategory(cat.id)} className="text-muted-foreground hover:text-destructive">
-                <X className="size-3" />
+        {categories.map((cat) => {
+          const removing = isRemovingCategory(cat.id);
+          return (
+            <span
+              key={cat.id}
+              className="inline-flex items-center gap-1 rounded-md border border-border bg-muted px-2 py-0.5 text-xs font-medium"
+            >
+              {cat.name}
+              <button
+                onClick={() => removeCategory(cat.id)}
+                disabled={removing}
+                className="text-muted-foreground hover:text-destructive disabled:opacity-50"
+              >
+                {removing ? <Loader2 className="size-3 animate-spin" /> : <X className="size-3" />}
               </button>
-            )}
-          </span>
-        ))}
+            </span>
+          );
+        })}
       </div>
     </div>
   );

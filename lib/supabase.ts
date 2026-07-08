@@ -24,6 +24,7 @@ export interface DBProject {
   receitas: number;
   despesas: number;
   image_url?: string | null;
+  goal_amount?: number | null;
 }
 
 export interface DBTransaction {
@@ -35,12 +36,23 @@ export interface DBTransaction {
   category_id: string;
   amount: number;
   date: string;
+  notes?: string | null;
 }
 
 export interface DBCategory {
   id: string;
   owner_id: string;
   name: string;
+}
+
+export interface DBRule {
+  id: string;
+  owner_id: string;
+  project_id: string;
+  keyword: string;
+  category_id: string;
+  confidence: string;
+  frequency: string;
 }
 
 export interface DBAsset {

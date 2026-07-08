@@ -1,9 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
-import { ArrowLeft, Edit2, Plus, Sparkles, X } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { ArrowLeft, Edit2, Loader2, Plus, Sparkles, X } from 'lucide-react';
 import NexoPage from '@/components/nexo/NexoPage';
+import NexoEmpty from '@/components/nexo/NexoEmpty';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
@@ -15,7 +16,10 @@ import { resolveCategoryName } from '@/features/finance/categories/utils/categor
 import type { Rule } from '@/features/finance/categories/types/rule';
 
 export default function RulesScreen() {
-  const { rules, addRule, updateRule, removeRule } = useRules();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const projectId = searchParams.get('projectId') ?? '';
+  const { rules, addRule, updateRule, isSavingRule, removeRule, isRemovingRule } = useRules(projectId);
   const { categories } = useCategories();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [newKeyword, setNewKeyword] = useState('');
@@ -24,16 +28,25 @@ export default function RulesScreen() {
   const [editKeyword, setEditKeyword] = useState('');
   const [editCategoryId, setEditCategoryId] = useState('');
 
+  if (!projectId) {
+    return (
+      <NexoPage title="Regras inteligentes" onBack={() => router.back()}>
+        <NexoEmpty title="Nenhum projeto selecionado" description="Abra as regras a partir das transações de um projeto." />
+      </NexoPage>
+    );
+  }
+
   return (
     <NexoPage>
       <div className="mb-4 flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <Link
-            href="/dashboard/transacoes"
+          <button
+            onClick={() => router.back()}
+            aria-label="Voltar"
             className="rounded-lg p-1.5 text-muted-foreground transition hover:bg-muted"
           >
             <ArrowLeft className="size-5" />
-          </Link>
+          </button>
           <h1 className="text-lg font-semibold">Regras inteligentes</h1>
         </div>
         <NexoButton size="sm" onClick={() => setIsCreateOpen(true)}>
@@ -42,16 +55,6 @@ export default function RulesScreen() {
       </div>
 
       <div className="space-y-4">
-        <div className="space-y-1 rounded-2xl bg-slate-900 p-3.5 text-white">
-          <div className="flex items-center gap-1.5 text-emerald-400">
-            <Sparkles className="size-4" />
-            <span className="text-xs font-bold uppercase tracking-wide">Categorização automática</span>
-          </div>
-          <p className="text-xs text-slate-300">
-            Quando uma transação contém a palavra-chave, a categoria é sugerida automaticamente ao importar ou lançar.
-          </p>
-        </div>
-
         <CategoryManager />
 
         <div className="space-y-2">
@@ -89,15 +92,21 @@ export default function RulesScreen() {
                         setEditKeyword(rule.keyword);
                         setEditCategoryId(rule.categoryId);
                       }}
-                      className="rounded-md p-1 text-muted-foreground transition hover:bg-muted hover:text-foreground"
+                      disabled={isRemovingRule(rule.id)}
+                      className="rounded-md p-1 text-muted-foreground transition hover:bg-muted hover:text-foreground disabled:opacity-50"
                     >
                       <Edit2 className="size-3.5" />
                     </button>
                     <button
                       onClick={() => removeRule(rule.id)}
-                      className="rounded-md p-1 text-muted-foreground transition hover:bg-destructive/10 hover:text-destructive"
+                      disabled={isRemovingRule(rule.id)}
+                      className="rounded-md p-1 text-muted-foreground transition hover:bg-destructive/10 hover:text-destructive disabled:opacity-50"
                     >
-                      <X className="size-3.5" />
+                      {isRemovingRule(rule.id) ? (
+                        <Loader2 className="size-3.5 animate-spin" />
+                      ) : (
+                        <X className="size-3.5" />
+                      )}
                     </button>
                   </div>
                 </div>
@@ -137,14 +146,15 @@ export default function RulesScreen() {
               </Select>
             </div>
             <div className="flex justify-end gap-2 pt-2">
-              <NexoButton type="button" variant="outline" onClick={() => setIsCreateOpen(false)}>
+              <NexoButton type="button" variant="outline" disabled={isSavingRule} onClick={() => setIsCreateOpen(false)}>
                 Cancelar
               </NexoButton>
               <NexoButton
                 type="button"
-                onClick={() => {
+                loading={isSavingRule}
+                onClick={async () => {
                   if (!newKeyword.trim()) return;
-                  addRule(newKeyword.trim(), newCategoryId);
+                  await addRule(newKeyword.trim(), newCategoryId);
                   setNewKeyword('');
                   setIsCreateOpen(false);
                 }}
@@ -184,9 +194,10 @@ export default function RulesScreen() {
             <div className="flex justify-end gap-2 pt-2">
               <NexoButton
                 type="button"
-                onClick={() => {
+                loading={isSavingRule}
+                onClick={async () => {
                   if (!editingRule || !editKeyword.trim()) return;
-                  updateRule(editingRule.id, editKeyword.trim(), editCategoryId);
+                  await updateRule(editingRule.id, editKeyword.trim(), editCategoryId);
                   setEditingRule(null);
                 }}
               >

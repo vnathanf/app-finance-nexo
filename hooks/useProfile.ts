@@ -27,5 +27,6 @@ export function useProfile() {
     profile: query.data ?? null,
     isLoading: query.isLoading,
     saveProfile: save.mutateAsync,
+    isSavingProfile: save.isPending,
   };
 }

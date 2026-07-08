@@ -2,11 +2,14 @@
 
 import { useState, type FormEvent } from 'react';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import NexoButton from '@/components/nexo/NexoButton';
 import { transactionSchema } from '@/features/finance/transactions/types/transaction.schema';
 import { cn } from '@/lib/utils';
 import { todayISO } from '@/utils/date';
+import { useRules } from '@/features/finance/categories/hooks/useRules';
+import { matchRuleForTitle } from '@/features/finance/categories/utils/matchRule';
 import type { TransactionType } from '@/features/finance/transactions/types/transaction';
 import type { Category } from '@/features/finance/categories/types/category';
 
@@ -17,6 +20,7 @@ export interface TransactionFormValues {
   categoryId: string;
   amount: number;
   date: string;
+  notes?: string;
 }
 
 interface TransactionFormProps {
@@ -25,6 +29,7 @@ interface TransactionFormProps {
   categories: Category[];
   initialValues?: Partial<TransactionFormValues>;
   submitLabel?: string;
+  isSubmitting?: boolean;
   onSubmit: (values: TransactionFormValues) => void;
   onCancel?: () => void;
 }
@@ -34,15 +39,34 @@ export default function TransactionForm({
   categories,
   initialValues,
   submitLabel = 'Salvar',
+  isSubmitting = false,
   onSubmit,
   onCancel,
 }: TransactionFormProps) {
+  const { rules } = useRules(projectId);
   const [title, setTitle] = useState(initialValues?.title ?? '');
   const [type, setType] = useState<TransactionType>(initialValues?.type ?? 'Receita');
   const [categoryId, setCategoryId] = useState(initialValues?.categoryId ?? categories[0]?.id ?? '');
+  const [categoryTouched, setCategoryTouched] = useState(!!initialValues?.categoryId);
   const [amount, setAmount] = useState(initialValues?.amount?.toString() ?? '');
   const [date, setDate] = useState(initialValues?.date ?? todayISO());
+  const [notes, setNotes] = useState(initialValues?.notes ?? '');
   const [error, setError] = useState<string | null>(null);
+
+  // Ao criar (não editar) uma transação, sugere a categoria pela regra que
+  // bater com a descrição digitada — só enquanto o usuário não escolher uma
+  // categoria manualmente.
+  const handleTitleChange = (value: string) => {
+    setTitle(value);
+    if (categoryTouched) return;
+    const suggested = matchRuleForTitle(rules, value);
+    if (suggested) setCategoryId(suggested);
+  };
+
+  const handleCategoryChange = (value: string) => {
+    setCategoryId(value);
+    setCategoryTouched(true);
+  };
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -53,6 +77,7 @@ export default function TransactionForm({
       categoryId,
       amount: parseFloat(amount),
       date,
+      notes: notes.trim() || undefined,
     });
     if (!result.success) {
       setError(result.error.issues[0]?.message ?? 'Dados inválidos');
@@ -96,13 +121,13 @@ export default function TransactionForm({
 
       <div className="space-y-1.5">
         <label className="text-sm font-medium">Descrição</label>
-        <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Ex: Aluguel, Jantar..." required />
+        <Input value={title} onChange={(e) => handleTitleChange(e.target.value)} placeholder="Ex: Aluguel, Jantar..." required />
       </div>
 
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1.5">
           <label className="text-sm font-medium">Categoria</label>
-          <Select value={categoryId} onValueChange={setCategoryId}>
+          <Select value={categoryId} onValueChange={handleCategoryChange}>
             <SelectTrigger>
               <SelectValue placeholder="Categoria" />
             </SelectTrigger>
@@ -134,15 +159,26 @@ export default function TransactionForm({
         <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
       </div>
 
+      <div className="space-y-1.5">
+        <label className="text-sm font-medium">Observação</label>
+        <Textarea
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          placeholder="Anotação opcional sobre essa transação..."
+        />
+      </div>
+
       {error && <p className="text-sm text-destructive">{error}</p>}
 
       <div className="flex justify-end gap-2 pt-2">
         {onCancel && (
-          <NexoButton type="button" variant="outline" onClick={onCancel}>
+          <NexoButton type="button" variant="outline" disabled={isSubmitting} onClick={onCancel}>
             Cancelar
           </NexoButton>
         )}
-        <NexoButton type="submit">{submitLabel}</NexoButton>
+        <NexoButton type="submit" loading={isSubmitting}>
+          {submitLabel}
+        </NexoButton>
       </div>
     </form>
   );

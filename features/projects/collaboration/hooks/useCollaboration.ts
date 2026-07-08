@@ -63,8 +63,11 @@ export function useCollaboration(projectId: string) {
     invites: invitesQuery.data ?? [],
     isLoading: membersQuery.isLoading || invitesQuery.isLoading,
     inviteMember: invite.mutateAsync,
+    isInviting: invite.isPending,
     cancelInvite: cancelInviteMutation.mutateAsync,
+    isCancelingInvite: (inviteId: string) => cancelInviteMutation.isPending && cancelInviteMutation.variables === inviteId,
     updateMemberRole: updateRole.mutateAsync,
     removeMember: remove.mutateAsync,
+    isRemovingMember: (memberId: string) => remove.isPending && remove.variables === memberId,
   };
 }

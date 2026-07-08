@@ -41,7 +41,7 @@ interface AssetsTabProps {
 }
 
 export default function AssetsTab({ projectId }: AssetsTabProps) {
-  const { assets, saveAsset, isLoading: isLoadingAssets } = useAssets();
+  const { assets, saveAsset, isSavingAsset, isLoading: isLoadingAssets } = useAssets();
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>('Todos');
   const [isCreateOpen, setIsCreateOpen] = useState(false);
 
@@ -160,6 +160,7 @@ export default function AssetsTab({ projectId }: AssetsTabProps) {
           <AssetForm
             projectId={projectId}
             submitLabel="Cadastrar"
+            isSubmitting={isSavingAsset}
             onSubmit={async (values) => {
               await saveAsset({
                 id: generatePureId('ast'),

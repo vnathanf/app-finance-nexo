@@ -53,5 +53,5 @@ export function useReports(filters?: ReportFilters) {
     return { receitas, despesas, saldo: receitas - despesas };
   }, [scoped]);
 
-  return { monthlySummary, categoryBreakdown, totals, isLoading };
+  return { monthlySummary, categoryBreakdown, totals, transactions: scoped, isLoading };
 }

@@ -48,6 +48,8 @@ export function useProjects() {
     isLoading: query.isLoading,
     error: query.error,
     saveProject: upsert.mutateAsync,
+    isSavingProject: upsert.isPending,
     deleteProject: remove.mutateAsync,
+    isDeletingProject: remove.isPending,
   };
 }

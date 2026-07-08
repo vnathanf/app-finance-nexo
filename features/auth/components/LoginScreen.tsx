@@ -4,7 +4,7 @@ import { useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { Input } from '@/components/ui/input';
 import NexoButton from '@/components/nexo/NexoButton';
-import { signInWithEmail, signInWithGoogle, signUpWithEmail } from '@/features/auth/services/auth.service';
+import { signInWithEmail, signUpWithEmail } from '@/features/auth/services/auth.service';
 import { upsertProfile } from '@/features/auth/services/auth.service';
 
 type Mode = 'login' | 'register';
@@ -46,8 +46,8 @@ export default function LoginScreen() {
       setError('As senhas não coincidem.');
       return;
     }
-    if (password.length < 6) {
-      setError('A senha precisa ter pelo menos 6 caracteres.');
+    if (password.length < 8) {
+      setError('A senha precisa ter pelo menos 8 caracteres.');
       return;
     }
     setIsSubmitting(true);
@@ -57,7 +57,7 @@ export default function LoginScreen() {
       if (data.user) {
         await upsertProfile({ id: data.user.id, name: name.trim(), email: email.trim() });
       }
-      router.push('/dashboard/projetos');
+      router.push('/pendente');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Não foi possível criar a conta.');
     } finally {
@@ -101,13 +101,16 @@ export default function LoginScreen() {
           {error && <p className="text-sm text-destructive">{error}</p>}
 
           <div className="space-y-2 pt-2">
-            <NexoButton type="submit" className="w-full" disabled={isSubmitting}>
+            <NexoButton type="submit" className="w-full" loading={isSubmitting}>
               Entrar
             </NexoButton>
-            <NexoButton type="button" variant="outline" className="w-full" onClick={() => void signInWithGoogle()}>
-              Entrar com Google
-            </NexoButton>
-            <NexoButton type="button" variant="ghost" className="w-full" onClick={() => switchMode('register')}>
+            <NexoButton
+              type="button"
+              variant="ghost"
+              className="w-full"
+              disabled={isSubmitting}
+              onClick={() => switchMode('register')}
+            >
               Criar novo usuário
             </NexoButton>
           </div>
@@ -139,7 +142,7 @@ export default function LoginScreen() {
           {error && <p className="text-sm text-destructive">{error}</p>}
 
           <div className="pt-2">
-            <NexoButton type="submit" className="w-full" disabled={isSubmitting}>
+            <NexoButton type="submit" className="w-full" loading={isSubmitting}>
               Cadastrar usuário
             </NexoButton>
           </div>

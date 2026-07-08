@@ -9,6 +9,7 @@ import MoneyInput from '@/components/common/MoneyInput';
 import { assetSchema } from '@/features/assets/types/asset.schema';
 import { cn, generatePureId } from '@/lib/utils';
 import { uploadFile } from '@/services/upload.service';
+import { getErrorMessage } from '@/utils/errors';
 import type { AssetCategory, AssetCustomField } from '@/features/assets/types/asset';
 
 const CATEGORIES: AssetCategory[] = ['Imóvel', 'Investimentos', 'Veículos', 'Contas', 'Outros'];
@@ -36,11 +37,19 @@ interface AssetFormProps {
   projectId: string;
   initialValues?: Partial<AssetFormValues>;
   submitLabel?: string;
+  isSubmitting?: boolean;
   onSubmit: (values: AssetFormValues) => void;
   onCancel?: () => void;
 }
 
-export default function AssetForm({ projectId, initialValues, submitLabel = 'Salvar', onSubmit, onCancel }: AssetFormProps) {
+export default function AssetForm({
+  projectId,
+  initialValues,
+  submitLabel = 'Salvar',
+  isSubmitting = false,
+  onSubmit,
+  onCancel,
+}: AssetFormProps) {
   const [name, setName] = useState(initialValues?.name ?? '');
   const [category, setCategory] = useState<AssetCategory>(initialValues?.category ?? 'Imóvel');
   const [subCategory, setSubCategory] = useState(initialValues?.subCategory ?? '');
@@ -65,8 +74,8 @@ export default function AssetForm({ projectId, initialValues, submitLabel = 'Sal
       const url = await uploadFile(file, `asset-covers/${generatePureId('cover')}-${file.name}`);
       setImageUrl(url);
       setError(null);
-    } catch {
-      setError('Falha ao enviar a imagem. Tente novamente.');
+    } catch (e) {
+      setError(getErrorMessage(e, 'Falha ao enviar a imagem. Tente novamente.'));
     } finally {
       setIsUploading(false);
     }
@@ -166,7 +175,7 @@ export default function AssetForm({ projectId, initialValues, submitLabel = 'Sal
           {imageUrl ? (
             <>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={imageUrl} alt="Capa do bem" className="absolute inset-0 size-full object-cover" />
+              <img src={imageUrl} alt="Capa do bem" className="absolute inset-0 size-full object-contain" />
               <button
                 type="button"
                 onClick={() => setImageUrl('')}
@@ -270,11 +279,11 @@ export default function AssetForm({ projectId, initialValues, submitLabel = 'Sal
 
       <div className="flex justify-end gap-2 pt-2">
         {onCancel && (
-          <NexoButton type="button" variant="outline" onClick={onCancel}>
+          <NexoButton type="button" variant="outline" disabled={isUploading || isSubmitting} onClick={onCancel}>
             Cancelar
           </NexoButton>
         )}
-        <NexoButton type="submit" disabled={isUploading}>
+        <NexoButton type="submit" disabled={isUploading} loading={isSubmitting}>
           {submitLabel}
         </NexoButton>
       </div>

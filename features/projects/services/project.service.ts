@@ -1,4 +1,5 @@
 import { supabase, type DBProject } from '@/lib/supabase';
+import { subscribeToTableChanges } from '@/lib/realtimeChannel';
 import type { Project } from '@/features/projects/types/project';
 
 function fromDB(row: DBProject): Project {
@@ -15,6 +16,7 @@ function fromDB(row: DBProject): Project {
     receitas: row.receitas || 0,
     despesas: row.despesas || 0,
     imageUrl: row.image_url ?? undefined,
+    goalAmount: row.goal_amount ?? undefined,
   };
 }
 
@@ -32,6 +34,7 @@ function toDB(project: Project, ownerId: string): DBProject {
     receitas: project.receitas || 0,
     despesas: project.despesas || 0,
     image_url: project.imageUrl ?? null,
+    goal_amount: project.goalAmount ?? null,
   };
 }
 
@@ -67,14 +70,5 @@ export async function removeProject(id: string): Promise<void> {
  * em projetos que não são dele. O refetch subsequente já vem filtrado pela RLS.
  */
 export function subscribeToProjects(onChange: () => void) {
-  // Nome de canal único por chamada: supabase.channel() reutiliza o canal existente
-  // se o tópico já tiver sido inscrito, e o SDK lança erro ao chamar `.on()` num
-  // canal já inscrito — isso quebra quando múltiplos componentes usam o hook ao mesmo tempo.
-  const channel = supabase
-    .channel(`own-projects-${crypto.randomUUID()}`)
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'projects' }, onChange)
-    .subscribe();
-  return () => {
-    void supabase.removeChannel(channel);
-  };
+  return subscribeToTableChanges('projects', onChange);
 }

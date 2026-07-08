@@ -13,6 +13,7 @@ import { updatePassword } from '@/features/auth/services/auth.service';
 import { uploadFile } from '@/services/upload.service';
 import { generatePureId } from '@/lib/utils';
 import { cn } from '@/lib/utils';
+import { getErrorMessage } from '@/utils/errors';
 
 const AVATAR_PRESETS = [
   { name: 'Padrão', url: 'https://picsum.photos/seed/NathanF/150/150' },
@@ -31,6 +32,8 @@ export default function ProfileScreen() {
   const [avatarUrl, setAvatarUrl] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [isUploading, setIsUploading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -43,13 +46,17 @@ export default function ProfileScreen() {
   }, [profile]);
 
   const handleFile = async (file: File) => {
+    if (!file.type.startsWith('image/')) {
+      setError('Envie um arquivo de imagem válido.');
+      return;
+    }
     setIsUploading(true);
     try {
       const url = await uploadFile(file, `avatars/${generatePureId('avatar')}-${file.name}`);
       setAvatarUrl(url);
       setError(null);
-    } catch {
-      setError('Falha ao enviar a imagem.');
+    } catch (e) {
+      setError(getErrorMessage(e, 'Falha ao enviar a imagem.'));
     } finally {
       setIsUploading(false);
     }
@@ -63,6 +70,7 @@ export default function ProfileScreen() {
     }
     setError(null);
     setMessage(null);
+    setIsSaving(true);
     try {
       await saveProfile({ name: name.trim(), email: user.email, phone: phone.trim(), avatarUrl: avatarUrl || undefined });
 
@@ -78,19 +86,21 @@ export default function ProfileScreen() {
       setMessage('Alterações salvas com sucesso!');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Não foi possível salvar as alterações.');
+    } finally {
+      setIsSaving(false);
     }
   };
 
   if (isLoading) {
     return (
-      <NexoPage title="Perfil">
+      <NexoPage title="Perfil" onBack={() => router.back()}>
         <NexoLoading />
       </NexoPage>
     );
   }
 
   return (
-    <NexoPage title="Perfil">
+    <NexoPage title="Perfil" onBack={() => router.back()}>
       <div className="space-y-4">
         <div className="space-y-3.5 rounded-2xl border border-border bg-card p-4 text-center">
           <p className="text-xs font-semibold uppercase tracking-wide text-primary">Foto de perfil</p>
@@ -172,7 +182,7 @@ export default function ProfileScreen() {
         {error && <p className="text-sm text-destructive">{error}</p>}
         {message && <p className="text-sm text-emerald-600">{message}</p>}
 
-        <NexoButton className="w-full" onClick={handleSave}>
+        <NexoButton className="w-full" loading={isSaving} disabled={isUploading} onClick={handleSave}>
           Salvar alterações
         </NexoButton>
 
@@ -182,7 +192,9 @@ export default function ProfileScreen() {
           <NexoButton
             variant="outline"
             className="w-full"
+            loading={isSigningOut}
             onClick={async () => {
+              setIsSigningOut(true);
               await signOut();
               router.push('/login');
             }}

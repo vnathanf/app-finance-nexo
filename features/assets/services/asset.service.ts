@@ -1,4 +1,5 @@
 import { supabase, type DBAsset } from '@/lib/supabase';
+import { subscribeToTableChanges } from '@/lib/realtimeChannel';
 import type { Asset } from '@/features/assets/types/asset';
 
 function fromDB(row: DBAsset): Asset {
@@ -66,13 +67,5 @@ export async function removeAsset(id: string): Promise<void> {
 
 /** Sem filtro de owner_id: precisa notificar sobre mudanças em projetos compartilhados também. */
 export function subscribeToAssets(onChange: () => void) {
-  // Nome de canal único por chamada: evita reusar um canal já inscrito quando
-  // múltiplos componentes chamam o hook ao mesmo tempo (ver project.service.ts).
-  const channel = supabase
-    .channel(`own-assets-${crypto.randomUUID()}`)
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'assets' }, onChange)
-    .subscribe();
-  return () => {
-    void supabase.removeChannel(channel);
-  };
+  return subscribeToTableChanges('assets', onChange);
 }

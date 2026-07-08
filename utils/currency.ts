@@ -19,6 +19,15 @@ export function formatCurrencyCompact(value: number): string {
   return formatCurrency(value, { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 }
 
+/** Abrevia com sufixo k/M, sem símbolo de moeda — pra rótulos apertados (ex: barras de gráfico). */
+export function formatCurrencyAbbreviated(value: number): string {
+  const abs = Math.abs(value);
+  const sign = value < 0 ? '-' : '';
+  if (abs >= 1_000_000) return `${sign}${(abs / 1_000_000).toFixed(1).replace('.', ',')}M`;
+  if (abs >= 1_000) return `${sign}${(abs / 1_000).toFixed(1).replace('.', ',')}k`;
+  return `${sign}${Math.round(abs)}`;
+}
+
 /** Formata com o sinal (+ / -) explícito, útil para listas de transações. */
 export function formatSignedCurrency(value: number): string {
   const sign = value >= 0 ? '+' : '-';

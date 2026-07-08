@@ -7,6 +7,7 @@ import NexoButton from '@/components/nexo/NexoButton';
 import { projectSchema } from '@/features/projects/types/project.schema';
 import { cn, generatePureId } from '@/lib/utils';
 import { uploadFile } from '@/services/upload.service';
+import { getErrorMessage } from '@/utils/errors';
 import type { ProjectType } from '@/features/projects/types/project';
 
 const PROJECT_TYPES: ProjectType[] = ['Pessoal', 'Imóvel', 'Negócios', 'Viagem', 'Outro'];
@@ -28,11 +29,18 @@ export interface ProjectFormValues {
 interface ProjectFormProps {
   initialValues?: Partial<ProjectFormValues>;
   submitLabel?: string;
+  isSubmitting?: boolean;
   onSubmit: (values: ProjectFormValues) => void;
   onCancel?: () => void;
 }
 
-export default function ProjectForm({ initialValues, submitLabel = 'Salvar', onSubmit, onCancel }: ProjectFormProps) {
+export default function ProjectForm({
+  initialValues,
+  submitLabel = 'Salvar',
+  isSubmitting = false,
+  onSubmit,
+  onCancel,
+}: ProjectFormProps) {
   const [name, setName] = useState(initialValues?.name ?? '');
   const [type, setType] = useState<ProjectType>(initialValues?.type ?? 'Pessoal');
   const [imageUrl, setImageUrl] = useState(initialValues?.imageUrl ?? '');
@@ -50,8 +58,8 @@ export default function ProjectForm({ initialValues, submitLabel = 'Salvar', onS
       const url = await uploadFile(file, `project-covers/${generatePureId('cover')}-${file.name}`);
       setImageUrl(url);
       setError(null);
-    } catch {
-      setError('Falha ao enviar a imagem. Tente novamente.');
+    } catch (e) {
+      setError(getErrorMessage(e, 'Falha ao enviar a imagem. Tente novamente.'));
     } finally {
       setIsUploading(false);
     }
@@ -110,7 +118,7 @@ export default function ProjectForm({ initialValues, submitLabel = 'Salvar', onS
           {imageUrl ? (
             <>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={imageUrl} alt="Capa do projeto" className="absolute inset-0 size-full object-cover" />
+              <img src={imageUrl} alt="Capa do projeto" className="absolute inset-0 size-full object-contain" />
               <button
                 type="button"
                 onClick={() => setImageUrl('')}
@@ -179,11 +187,11 @@ export default function ProjectForm({ initialValues, submitLabel = 'Salvar', onS
 
       <div className="flex justify-end gap-2 pt-2">
         {onCancel && (
-          <NexoButton type="button" variant="outline" onClick={onCancel}>
+          <NexoButton type="button" variant="outline" disabled={isUploading || isSubmitting} onClick={onCancel}>
             Cancelar
           </NexoButton>
         )}
-        <NexoButton type="submit" disabled={isUploading}>
+        <NexoButton type="submit" disabled={isUploading} loading={isSubmitting}>
           {submitLabel}
         </NexoButton>
       </div>

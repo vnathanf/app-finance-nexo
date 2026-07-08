@@ -1,10 +1,10 @@
 'use client';
 
-import { Bell, Check, X } from 'lucide-react';
+import { Bell, Check, Loader2, X } from 'lucide-react';
 import { useMyInvites } from '@/features/projects/collaboration/hooks/useMyInvites';
 
 export default function PendingInvitesBanner() {
-  const { invites, acceptInvite, declineInvite } = useMyInvites();
+  const { invites, acceptInvite, isAcceptingInvite, declineInvite, isDecliningInvite } = useMyInvites();
 
   if (invites.length === 0) return null;
 
@@ -34,15 +34,27 @@ export default function PendingInvitesBanner() {
             <div className="flex shrink-0 items-center gap-2">
               <button
                 onClick={() => acceptInvite(invite.id)}
-                className="flex items-center gap-1 rounded-lg bg-emerald-700 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-emerald-800"
+                disabled={isAcceptingInvite(invite.id) || isDecliningInvite(invite.id)}
+                className="flex items-center gap-1 rounded-lg bg-emerald-700 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-emerald-800 disabled:opacity-50"
               >
-                <Check className="size-3.5" /> Aceitar
+                {isAcceptingInvite(invite.id) ? (
+                  <Loader2 className="size-3.5 animate-spin" />
+                ) : (
+                  <Check className="size-3.5" />
+                )}{' '}
+                Aceitar
               </button>
               <button
                 onClick={() => declineInvite(invite.id)}
-                className="flex items-center gap-1 rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 transition hover:bg-red-100"
+                disabled={isAcceptingInvite(invite.id) || isDecliningInvite(invite.id)}
+                className="flex items-center gap-1 rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 transition hover:bg-red-100 disabled:opacity-50"
               >
-                <X className="size-3.5" /> Recusar
+                {isDecliningInvite(invite.id) ? (
+                  <Loader2 className="size-3.5 animate-spin" />
+                ) : (
+                  <X className="size-3.5" />
+                )}{' '}
+                Recusar
               </button>
             </div>
           </div>

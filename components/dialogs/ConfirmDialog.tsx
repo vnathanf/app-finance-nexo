@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -8,7 +9,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
+import NexoButton from '@/components/nexo/NexoButton';
 
 interface ConfirmDialogProps {
   open: boolean;
@@ -18,7 +19,7 @@ interface ConfirmDialogProps {
   confirmLabel?: string;
   cancelLabel?: string;
   variant?: 'default' | 'destructive';
-  onConfirm: () => void;
+  onConfirm: () => void | Promise<void>;
 }
 
 export default function ConfirmDialog({
@@ -31,26 +32,36 @@ export default function ConfirmDialog({
   variant = 'default',
   onConfirm,
 }: ConfirmDialogProps) {
+  const [isConfirming, setIsConfirming] = useState(false);
+
+  const handleConfirm = async () => {
+    setIsConfirming(true);
+    try {
+      await onConfirm();
+      onOpenChange(false);
+    } finally {
+      setIsConfirming(false);
+    }
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(next) => !isConfirming && onOpenChange(next)}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           {description && <DialogDescription>{description}</DialogDescription>}
         </DialogHeader>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <NexoButton variant="outline" disabled={isConfirming} onClick={() => onOpenChange(false)}>
             {cancelLabel}
-          </Button>
-          <Button
+          </NexoButton>
+          <NexoButton
             variant={variant === 'destructive' ? 'destructive' : 'default'}
-            onClick={() => {
-              onConfirm();
-              onOpenChange(false);
-            }}
+            loading={isConfirming}
+            onClick={() => void handleConfirm()}
           >
             {confirmLabel}
-          </Button>
+          </NexoButton>
         </DialogFooter>
       </DialogContent>
     </Dialog>

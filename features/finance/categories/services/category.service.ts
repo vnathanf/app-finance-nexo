@@ -1,4 +1,5 @@
 import { supabase, type DBCategory } from '@/lib/supabase';
+import { subscribeToTableChanges } from '@/lib/realtimeChannel';
 import type { Category } from '@/features/finance/categories/types/category';
 
 function fromDB(row: DBCategory): Category {
@@ -35,13 +36,5 @@ export async function removeCategory(id: string): Promise<void> {
 }
 
 export function subscribeToCategories(onChange: () => void) {
-  // Nome de canal único por chamada: evita reusar um canal já inscrito quando
-  // múltiplos componentes chamam o hook ao mesmo tempo (ver project.service.ts).
-  const channel = supabase
-    .channel(`own-categories-${crypto.randomUUID()}`)
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'categories' }, onChange)
-    .subscribe();
-  return () => {
-    void supabase.removeChannel(channel);
-  };
+  return subscribeToTableChanges('categories', onChange);
 }

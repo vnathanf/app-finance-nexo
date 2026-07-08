@@ -14,7 +14,7 @@ interface ProjectListProps {
 }
 
 export default function ProjectList({ projects, emptyMessage }: ProjectListProps) {
-  const { saveProject, deleteProject } = useProjects();
+  const { saveProject, isSavingProject, deleteProject } = useProjects();
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [deletingProject, setDeletingProject] = useState<Project | null>(null);
 
@@ -37,6 +37,7 @@ export default function ProjectList({ projects, emptyMessage }: ProjectListProps
         project={editingProject}
         open={!!editingProject}
         onOpenChange={(open) => !open && setEditingProject(null)}
+        isSaving={isSavingProject}
         onSave={(project) => saveProject(project)}
       />
 
@@ -47,7 +48,9 @@ export default function ProjectList({ projects, emptyMessage }: ProjectListProps
         description={`Tem certeza que deseja excluir o projeto "${deletingProject?.name}"? As transações vinculadas a ele também serão removidas.`}
         confirmLabel="Sim, remover"
         variant="destructive"
-        onConfirm={() => deletingProject && deleteProject(deletingProject.id)}
+        onConfirm={async () => {
+          if (deletingProject) await deleteProject(deletingProject.id);
+        }}
       />
     </div>
   );

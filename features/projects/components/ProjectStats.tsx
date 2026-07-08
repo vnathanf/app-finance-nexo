@@ -45,7 +45,7 @@ export default function ProjectStats({ projects }: ProjectStatsProps) {
 
       <Card className="flex-row items-center justify-between">
         <div>
-          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Saldo do mês</p>
+          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Saldo total</p>
           <Currency value={lucro} signed className="text-lg font-bold" />
         </div>
         <div className="flex size-9 items-center justify-center rounded-full bg-primary text-primary-foreground">

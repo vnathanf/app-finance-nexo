@@ -1,5 +1,5 @@
 import { getMonthName } from '@/utils/date';
-import { formatCurrencyCompact } from '@/utils/currency';
+import { formatCurrencyAbbreviated, formatCurrencyCompact } from '@/utils/currency';
 import type { MonthlySummary } from '@/features/finance/reports/types/report';
 
 interface CashFlowChartProps {
@@ -29,13 +29,21 @@ export default function CashFlowChart({ data }: CashFlowChartProps) {
       {recent.length === 0 ? (
         <p className="py-6 text-center text-xs text-muted-foreground">Sem movimentações no período.</p>
       ) : (
-        <div className="flex h-28 items-end justify-between gap-2 px-1">
+        <div className="flex h-40 items-end justify-between gap-2 px-1">
           {recent.map((point) => {
             const inHeight = point.receitas > 0 ? Math.max((point.receitas / maxValue) * 96, 4) : 0;
             const outHeight = point.despesas > 0 ? Math.max((point.despesas / maxValue) * 96, 4) : 0;
             const [, month] = point.month.split('-');
             return (
               <div key={point.month} className="flex h-full flex-1 flex-col items-center justify-end gap-1.5">
+                <div className="flex flex-col items-center gap-0.5 text-center leading-none">
+                  <span className="text-[8px] font-bold text-emerald-700">
+                    {point.receitas > 0 ? formatCurrencyAbbreviated(point.receitas) : ''}
+                  </span>
+                  <span className="text-[8px] font-bold text-red-600">
+                    {point.despesas > 0 ? formatCurrencyAbbreviated(point.despesas) : ''}
+                  </span>
+                </div>
                 <div className="flex h-24 items-end gap-1">
                   <div
                     className="w-3 rounded-t bg-emerald-600"

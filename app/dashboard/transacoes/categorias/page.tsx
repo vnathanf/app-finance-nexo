@@ -1,5 +1,10 @@
+import { Suspense } from 'react';
 import RulesScreen from "@/features/finance/categories/components/RulesScreen";
 
 export default function Page() {
-  return <RulesScreen />;
+  return (
+    <Suspense>
+      <RulesScreen />
+    </Suspense>
+  );
 }

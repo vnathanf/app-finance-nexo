@@ -18,7 +18,7 @@ export default function AssetDetailScreen() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const assetId = searchParams.get('id') ?? '';
-  const { assets, saveAsset, deleteAsset, isLoading: isLoadingAssets } = useAssets();
+  const { assets, saveAsset, isSavingAsset, deleteAsset, isLoading: isLoadingAssets } = useAssets();
   const [isEditing, setIsEditing] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
 
@@ -93,6 +93,7 @@ export default function AssetDetailScreen() {
             customFields: asset.customFields,
           }}
           submitLabel="Salvar alterações"
+          isSubmitting={isSavingAsset}
           onCancel={() => setIsEditing(false)}
           onSubmit={async (values) => {
             await saveAsset({
@@ -114,7 +115,7 @@ export default function AssetDetailScreen() {
           <div className="relative aspect-video overflow-hidden rounded-2xl border border-border bg-muted">
             {asset.imageUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={asset.imageUrl} alt={asset.name} className="absolute inset-0 size-full object-cover" />
+              <img src={asset.imageUrl} alt={asset.name} className="absolute inset-0 size-full object-contain" />
             ) : (
               <div className="absolute inset-0 flex items-center justify-center text-xs text-muted-foreground">
                 Sem imagem
@@ -160,7 +161,9 @@ export default function AssetDetailScreen() {
           </div>
 
           <AssetDocuments
+            projectId={asset.projectId}
             documents={asset.documents}
+            disabled={isSavingAsset}
             onAdd={(doc) => saveAsset({ ...asset, documents: [...asset.documents, doc] })}
             onRemove={(index) => saveAsset({ ...asset, documents: asset.documents.filter((_, i) => i !== index) })}
           />

@@ -48,8 +48,8 @@ export function cleanUndefined<T>(obj: T): T {
 /** Gera um ID local (usado para otimistic updates antes da confirmação do Supabase). */
 export function generatePureId(prefix: string): string {
   try {
-    return `${prefix}_${Date.now()}_${Math.floor(Math.random() * 100000)}`
+    return `${prefix}_${crypto.randomUUID()}`
   } catch (_) {
-    return `${prefix}_${Math.floor(Math.random() * 10000000)}`
+    return `${prefix}_${Date.now()}_${Math.floor(Math.random() * 100000)}`
   }
 }

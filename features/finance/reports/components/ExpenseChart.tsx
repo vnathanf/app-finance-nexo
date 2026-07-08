@@ -13,7 +13,7 @@ interface ExpenseChartProps {
 export default function ExpenseChart({ data, categories }: ExpenseChartProps) {
   return (
     <div className="space-y-2.5 rounded-2xl border border-border bg-card p-3.5">
-      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Destinação por categorias</p>
+      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Gastos por categoria</p>
 
       {data.length === 0 ? (
         <p className="py-4 text-center text-xs text-muted-foreground">Nenhuma despesa no período.</p>

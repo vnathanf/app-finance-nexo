@@ -15,7 +15,6 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  transpilePackages: ['motion'],
   webpack: (config, { dev }) => {
     // Disable cache to prevent build errors due to cache corruption
     config.cache = false;

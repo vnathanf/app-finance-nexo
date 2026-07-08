@@ -14,4 +14,6 @@ export interface Project {
   receitas: number;
   despesas: number;
   imageUrl?: string;
+  /** Valor-alvo pra projetos de planejamento (viagem, compra de um bem etc). Editado na tela de Relatórios. */
+  goalAmount?: number;
 }

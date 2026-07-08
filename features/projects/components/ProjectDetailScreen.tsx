@@ -12,6 +12,7 @@ import ProjectDialog from './ProjectDialog';
 import ProjectOverviewTab from './ProjectOverviewTab';
 import ShareDialog from '@/features/projects/collaboration/components/ShareDialog';
 import TransactionsTab from '@/features/finance/transactions/components/TransactionsTab';
+import type { TransactionTab } from '@/features/finance/transactions/components/TransactionFilters';
 import AssetsTab from '@/features/assets/components/AssetsTab';
 import ReportsTab from '@/features/finance/reports/components/ReportsTab';
 import { useProjects } from '@/features/projects/hooks/useProjects';
@@ -32,6 +33,7 @@ export default function ProjectDetailScreen() {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isShareOpen, setIsShareOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<Tab>('geral');
+  const [txInitialFilter, setTxInitialFilter] = useState<TransactionTab | undefined>(undefined);
 
   const liveProjects = useMemo(
     () => deriveProjectsWithLiveTotals(projects, transactions, assets),
@@ -107,12 +109,15 @@ export default function ProjectDetailScreen() {
             <ProjectOverviewTab
               project={project}
               recentTransactions={recentTransactions}
-              onViewAllTransactions={() => setActiveTab('transacoes')}
+              onViewAllTransactions={(filter) => {
+                setTxInitialFilter(filter);
+                setActiveTab('transacoes');
+              }}
             />
           </TabsContent>
 
           <TabsContent value="transacoes">
-            <TransactionsTab projectId={project.id} />
+            <TransactionsTab projectId={project.id} initialTypeFilter={txInitialFilter} />
           </TabsContent>
 
           <TabsContent value="patrimonio">
@@ -120,7 +125,7 @@ export default function ProjectDetailScreen() {
           </TabsContent>
 
           <TabsContent value="relatorios">
-            <ReportsTab projectId={project.id} />
+            <ReportsTab project={project} />
           </TabsContent>
         </Tabs>
       </div>

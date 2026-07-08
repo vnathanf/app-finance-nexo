@@ -8,14 +8,15 @@ interface ProjectDialogProps {
   project: Project | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSave: (project: Project) => void;
+  isSaving?: boolean;
+  onSave: (project: Project) => void | Promise<void>;
 }
 
-export default function ProjectDialog({ project, open, onOpenChange, onSave }: ProjectDialogProps) {
+export default function ProjectDialog({ project, open, onOpenChange, isSaving = false, onSave }: ProjectDialogProps) {
   if (!project) return null;
 
-  const handleSubmit = (values: ProjectFormValues) => {
-    onSave({
+  const handleSubmit = async (values: ProjectFormValues) => {
+    await onSave({
       ...project,
       name: values.name,
       type: values.type,
@@ -26,7 +27,7 @@ export default function ProjectDialog({ project, open, onOpenChange, onSave }: P
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(next) => !isSaving && onOpenChange(next)}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Editar projeto</DialogTitle>
@@ -34,7 +35,8 @@ export default function ProjectDialog({ project, open, onOpenChange, onSave }: P
         <ProjectForm
           initialValues={{ name: project.name, type: project.type, imageUrl: project.imageUrl ?? '' }}
           submitLabel="Salvar alterações"
-          onSubmit={handleSubmit}
+          isSubmitting={isSaving}
+          onSubmit={(values) => void handleSubmit(values)}
         />
       </DialogContent>
     </Dialog>

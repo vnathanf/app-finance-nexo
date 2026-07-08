@@ -6,7 +6,10 @@ import { useAuth } from '@/features/auth/contexts/AuthContext';
 import {
   listTransactions,
   saveTransaction,
+  duplicateTransactions,
   removeTransaction,
+  removeTransactions,
+  updateTransactionsCategory,
   subscribeToTransactions,
 } from '@/features/finance/transactions/services/transaction.service';
 import type { Transaction } from '@/features/finance/transactions/types/transaction';
@@ -42,11 +45,36 @@ export function useTransactions() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: key(ownerId) }),
   });
 
+  const removeMany = useMutation({
+    mutationFn: (ids: string[]) => removeTransactions(ids),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: key(ownerId) }),
+  });
+
+  const updateCategoryMany = useMutation({
+    mutationFn: ({ ids, categoryId }: { ids: string[]; categoryId: string }) =>
+      updateTransactionsCategory(ids, categoryId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: key(ownerId) }),
+  });
+
+  const duplicateMany = useMutation({
+    mutationFn: (txs: Transaction[]) => duplicateTransactions(txs, ownerId!),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: key(ownerId) }),
+  });
+
   return {
     transactions: query.data ?? [],
     isLoading: query.isLoading,
     error: query.error,
     saveTransaction: upsert.mutateAsync,
+    isSavingTransaction: upsert.isPending,
     deleteTransaction: remove.mutateAsync,
+    isDeletingTransaction: remove.isPending,
+    deleteTransactions: removeMany.mutateAsync,
+    isDeletingTransactions: removeMany.isPending,
+    updateTransactionsCategory: (ids: string[], categoryId: string) =>
+      updateCategoryMany.mutateAsync({ ids, categoryId }),
+    isUpdatingTransactionsCategory: updateCategoryMany.isPending,
+    duplicateTransactions: duplicateMany.mutateAsync,
+    isDuplicatingTransactions: duplicateMany.isPending,
   };
 }

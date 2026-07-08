@@ -12,7 +12,7 @@ import { generatePureId } from '@/lib/utils';
 export default function NewProjectScreen() {
   const router = useRouter();
   const { user } = useAuth();
-  const { saveProject } = useProjects();
+  const { saveProject, isSavingProject } = useProjects();
 
   return (
     <NexoPage>
@@ -25,6 +25,7 @@ export default function NewProjectScreen() {
 
       <ProjectForm
         submitLabel="Criar projeto"
+        isSubmitting={isSavingProject}
         onSubmit={async (values) => {
           await saveProject({
             id: generatePureId('p'),

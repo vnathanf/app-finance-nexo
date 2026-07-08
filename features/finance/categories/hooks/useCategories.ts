@@ -10,6 +10,7 @@ import {
   subscribeToCategories,
 } from '@/features/finance/categories/services/category.service';
 import { generatePureId } from '@/lib/utils';
+import { getErrorMessage } from '@/utils/errors';
 import { DEFAULT_CATEGORIES } from '@/features/finance/categories/constants';
 
 const key = (ownerId?: string) => ['categories', ownerId] as const;
@@ -39,9 +40,9 @@ export function useCategories() {
   useEffect(() => {
     if (!ownerId || hasSeeded.current || query.isLoading || !query.data || query.data.length > 0) return;
     hasSeeded.current = true;
-    void Promise.all(
-      DEFAULT_CATEGORIES.map((name) => saveCategory({ id: generatePureId('cat'), name }, ownerId))
-    ).then(() => queryClient.invalidateQueries({ queryKey: key(ownerId) }));
+    void Promise.all(DEFAULT_CATEGORIES.map((name) => saveCategory({ id: generatePureId('cat'), name }, ownerId)))
+      .then(() => queryClient.invalidateQueries({ queryKey: key(ownerId) }))
+      .catch((e) => console.warn('Falha ao semear categorias padrão:', getErrorMessage(e, 'erro desconhecido'), e));
   }, [ownerId, query.isLoading, query.data, queryClient]);
 
   const categories = query.data ?? [];
@@ -67,6 +68,8 @@ export function useCategories() {
     categories,
     isLoading: query.isLoading,
     addCategory,
+    isAddingCategory: upsert.isPending,
     removeCategory: (id: string) => remove.mutate(id),
+    isRemovingCategory: (id: string) => remove.isPending && remove.variables === id,
   };
 }

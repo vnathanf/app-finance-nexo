@@ -3,7 +3,10 @@ export type AssetCategory = 'Imóvel' | 'Investimentos' | 'Veículos' | 'Outros'
 export interface AssetDocument {
   name: string;
   size: string;
+  /** URL pública direta — documentos enviados antes da migração pro bucket privado (0009). */
   url?: string;
+  /** Path no bucket privado `documents` — gera uma signed URL sob demanda pra baixar (docs novos). */
+  path?: string;
 }
 
 export interface AssetCustomField {

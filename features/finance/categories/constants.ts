@@ -15,4 +15,9 @@ export const DEFAULT_CATEGORIES = [
   'Outros',
 ] as const;
 
-export const RULES_STORAGE_KEY = 'nexo_rules';
+/** Regras de exemplo semeadas uma vez por projeto (por nome de categoria padrão). */
+export const EXAMPLE_RULES: { keyword: string; categoryName: string }[] = [
+  { keyword: 'Netflix', categoryName: 'Assinaturas' },
+  { keyword: 'Uber', categoryName: 'Transporte' },
+  { keyword: 'Mercado', categoryName: 'Alimentação' },
+];

@@ -47,6 +47,8 @@ export function useAssets() {
     isLoading: query.isLoading,
     error: query.error,
     saveAsset: upsert.mutateAsync,
+    isSavingAsset: upsert.isPending,
     deleteAsset: remove.mutateAsync,
+    isDeletingAsset: remove.isPending,
   };
 }
