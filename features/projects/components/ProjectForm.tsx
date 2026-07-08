@@ -10,7 +10,7 @@ import { uploadFile } from '@/services/upload.service';
 import { getErrorMessage } from '@/utils/errors';
 import type { ProjectType } from '@/features/projects/types/project';
 
-const PROJECT_TYPES: ProjectType[] = ['Pessoal', 'Imóvel', 'Negócios', 'Viagem', 'Outro'];
+const PROJECT_TYPES: ProjectType[] = ['Pessoal', 'Negócios', 'Planejamento'];
 
 const COVER_PRESETS = [
   { name: 'Casa M.', url: 'https://images.unsplash.com/photo-1613490493576-7fde63acd811?auto=format&fit=crop&w=300&q=80' },

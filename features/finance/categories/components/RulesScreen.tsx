@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft, Edit2, Loader2, Plus, Sparkles, X } from 'lucide-react';
+import { ArrowLeft, Edit2, Lightbulb, Loader2, PlayCircle, Plus, Sparkles, X } from 'lucide-react';
 import NexoPage from '@/components/nexo/NexoPage';
 import NexoEmpty from '@/components/nexo/NexoEmpty';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -10,8 +10,11 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@
 import { Input } from '@/components/ui/input';
 import NexoButton from '@/components/nexo/NexoButton';
 import CategoryManager from './CategoryManager';
+import RuleSuggestionsDialog from './RuleSuggestionsDialog';
+import ExecuteRulesDialog from './ExecuteRulesDialog';
 import { useRules } from '@/features/finance/categories/hooks/useRules';
 import { useCategories } from '@/features/finance/categories/hooks/useCategories';
+import { useTransactions } from '@/features/finance/transactions/hooks/useTransactions';
 import { resolveCategoryName } from '@/features/finance/categories/utils/category';
 import type { Rule } from '@/features/finance/categories/types/rule';
 
@@ -21,6 +24,13 @@ export default function RulesScreen() {
   const projectId = searchParams.get('projectId') ?? '';
   const { rules, addRule, updateRule, isSavingRule, removeRule, isRemovingRule } = useRules(projectId);
   const { categories } = useCategories();
+  const { transactions, updateTransactionsCategory, isUpdatingTransactionsCategory } = useTransactions();
+  const projectTransactions = useMemo(
+    () => transactions.filter((tx) => tx.projectId === projectId),
+    [transactions, projectId]
+  );
+  const [isSuggestionsOpen, setIsSuggestionsOpen] = useState(false);
+  const [isExecuteOpen, setIsExecuteOpen] = useState(false);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [newKeyword, setNewKeyword] = useState('');
   const [newCategoryId, setNewCategoryId] = useState(categories[0]?.id ?? '');
@@ -58,7 +68,24 @@ export default function RulesScreen() {
         <CategoryManager />
 
         <div className="space-y-2">
-          <p className="text-sm font-semibold">Minhas regras ({rules.length})</p>
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-sm font-semibold">Minhas regras ({rules.length})</p>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setIsSuggestionsOpen(true)}
+                className="flex items-center gap-1 rounded-lg border border-border px-2 py-1 text-xs font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground"
+              >
+                <Lightbulb className="size-3.5" /> Sugestões
+              </button>
+              <button
+                onClick={() => setIsExecuteOpen(true)}
+                disabled={rules.length === 0}
+                className="flex items-center gap-1 rounded-lg border border-border px-2 py-1 text-xs font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground disabled:opacity-40"
+              >
+                <PlayCircle className="size-3.5" /> Executar regras
+              </button>
+            </div>
+          </div>
 
           {rules.length === 0 ? (
             <p className="rounded-xl border border-border bg-card p-4 text-center text-sm text-muted-foreground">
@@ -207,6 +234,26 @@ export default function RulesScreen() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <RuleSuggestionsDialog
+        open={isSuggestionsOpen}
+        onOpenChange={setIsSuggestionsOpen}
+        transactions={projectTransactions}
+        categories={categories}
+        rules={rules}
+        onAccept={(keyword, categoryId) => addRule(keyword, categoryId)}
+        isSaving={isSavingRule}
+      />
+
+      <ExecuteRulesDialog
+        open={isExecuteOpen}
+        onOpenChange={setIsExecuteOpen}
+        transactions={projectTransactions}
+        categories={categories}
+        rules={rules}
+        onApply={(ids, categoryId) => updateTransactionsCategory(ids, categoryId)}
+        isApplying={isUpdatingTransactionsCategory}
+      />
     </NexoPage>
   );
 }

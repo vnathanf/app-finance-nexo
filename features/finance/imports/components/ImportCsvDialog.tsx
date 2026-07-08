@@ -12,6 +12,9 @@ import { useTransactions } from '@/features/finance/transactions/hooks/useTransa
 import { useCategories } from '@/features/finance/categories/hooks/useCategories';
 import { useRules } from '@/features/finance/categories/hooks/useRules';
 import { matchRuleForTitle } from '@/features/finance/categories/utils/matchRule';
+import { resolveDefaultCategoryId } from '@/features/finance/categories/utils/category';
+import { suggestRules, buildKeywordSignal, suggestCategoryForTitle } from '@/features/finance/categories/utils/suggestRules';
+import RuleSuggestionsList from '@/features/finance/categories/components/RuleSuggestionsList';
 import { expandInstallmentSeries } from '@/features/finance/imports/utils/csv';
 import { generatePureId } from '@/lib/utils';
 import { getErrorMessage } from '@/utils/errors';
@@ -37,7 +40,7 @@ export default function ImportCsvDialog({ open, onOpenChange, projectId }: Impor
     useCsvImport();
   const { transactions, saveTransaction } = useTransactions();
   const { categories } = useCategories();
-  const { rules } = useRules(projectId);
+  const { rules, addRule, isSavingRule } = useRules(projectId);
   const [installmentDrafts, setInstallmentDrafts] = useState<Record<number, InstallmentDraft>>({});
   const [categoryOverrides, setCategoryOverrides] = useState<Record<string, string>>({});
   const [selectionOverrides, setSelectionOverrides] = useState<Record<string, boolean>>({});
@@ -47,6 +50,18 @@ export default function ImportCsvDialog({ open, onOpenChange, projectId }: Impor
   const projectTransactions = useMemo(
     () => transactions.filter((t) => t.projectId === projectId),
     [transactions, projectId]
+  );
+
+  const keywordSignal = useMemo(
+    () => buildKeywordSignal(projectTransactions, categories, rules),
+    [projectTransactions, categories, rules]
+  );
+
+  // Sugestões combinam o histórico do projeto com os títulos do próprio CSV
+  // sendo importado — pega comerciantes novos que se repetem no arquivo.
+  const suggestions = useMemo(
+    () => suggestRules(projectTransactions, categories, rules, rows.map((r) => r.title)),
+    [projectTransactions, categories, rules, rows]
   );
 
   const getDraft = (idx: number): InstallmentDraft => installmentDrafts[idx] ?? { enabled: false, current: '', total: '' };
@@ -97,8 +112,10 @@ export default function ImportCsvDialog({ open, onOpenChange, projectId }: Impor
 
   const getRowCategoryId = (key: string, row: ImportedTransactionRow) => {
     if (categoryOverrides[key]) return categoryOverrides[key];
-    const suggested = matchRuleForTitle(rules, row.title);
-    return suggested ?? categories[0]?.id ?? '';
+    const ruleMatch = matchRuleForTitle(rules, row.title);
+    if (ruleMatch) return ruleMatch;
+    const historyMatch = suggestCategoryForTitle(row.title, keywordSignal);
+    return historyMatch?.categoryId ?? resolveDefaultCategoryId(categories) ?? '';
   };
   const setRowCategoryId = (key: string, catId: string) => setCategoryOverrides((prev) => ({ ...prev, [key]: catId }));
 
@@ -241,6 +258,18 @@ export default function ImportCsvDialog({ open, onOpenChange, projectId }: Impor
                 </div>
               </div>
             </div>
+
+            {isMappingComplete && rows.length > 0 && suggestions.length > 0 && (
+              <div className="space-y-2 rounded-xl border border-border p-3">
+                <p className="text-sm font-semibold">Sugestões encontradas</p>
+                <RuleSuggestionsList
+                  suggestions={suggestions}
+                  categories={categories}
+                  onAccept={(keyword, categoryId) => addRule(keyword, categoryId)}
+                  isSaving={isSavingRule}
+                />
+              </div>
+            )}
 
             {isMappingComplete ? (
               <div className="max-h-80 space-y-1.5 overflow-y-auto">

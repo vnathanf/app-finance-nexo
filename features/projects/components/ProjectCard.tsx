@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { Building2, Edit2, Home, Plane, Briefcase, Trash2, User } from 'lucide-react';
+import { Edit2, Target, Briefcase, Trash2, User } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import Currency from '@/components/common/Currency';
 import { useAuth } from '@/features/auth/contexts/AuthContext';
@@ -9,16 +9,12 @@ import type { Project } from '@/features/projects/types/project';
 
 function ProjectIcon({ type }: { type: Project['type'] }) {
   switch (type) {
-    case 'Imóvel':
-      return <Home className="size-5 text-blue-600" />;
-    case 'Pessoal':
-      return <User className="size-5 text-emerald-600" />;
     case 'Negócios':
       return <Briefcase className="size-5 text-purple-600" />;
-    case 'Viagem':
-      return <Plane className="size-5 text-sky-600" />;
+    case 'Planejamento':
+      return <Target className="size-5 text-sky-600" />;
     default:
-      return <Building2 className="size-5 text-indigo-600" />;
+      return <User className="size-5 text-emerald-600" />;
   }
 }
 

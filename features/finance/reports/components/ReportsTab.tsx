@@ -23,13 +23,13 @@ interface ReportsTabProps {
 
 /**
  * Cada tipo de projeto tem uma finalidade diferente, então a análise
- * financeira que faz sentido também muda: um imóvel alugado quer saber
- * rentabilidade; um carro do dia a dia quer saber quanto custa por mês;
- * uma viagem quer saber quanto falta pra bater a meta.
+ * financeira que faz sentido também muda: um negócio quer saber
+ * rentabilidade; um projeto de planejamento (viagem, compra de um bem etc)
+ * quer saber quanto falta pra bater a meta; o resto é só controle de gastos.
  */
 function getProfile(type: Project['type']): 'investimento' | 'planejamento' | 'gastos' {
-  if (type === 'Negócios' || type === 'Imóvel') return 'investimento';
-  if (type === 'Viagem' || type === 'Outro') return 'planejamento';
+  if (type === 'Negócios') return 'investimento';
+  if (type === 'Planejamento') return 'planejamento';
   return 'gastos';
 }
 

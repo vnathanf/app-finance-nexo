@@ -15,7 +15,7 @@ export interface DBProject {
   id: string;
   owner_id: string;
   name: string;
-  type: 'Pessoal' | 'Imóvel' | 'Negócios' | 'Viagem' | 'Outro';
+  type: 'Pessoal' | 'Negócios' | 'Planejamento';
   sub: string;
   value: number;
   is_expense: boolean;

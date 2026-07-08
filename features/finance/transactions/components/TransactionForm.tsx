@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils';
 import { todayISO } from '@/utils/date';
 import { useRules } from '@/features/finance/categories/hooks/useRules';
 import { matchRuleForTitle } from '@/features/finance/categories/utils/matchRule';
+import { resolveDefaultCategoryId } from '@/features/finance/categories/utils/category';
 import type { TransactionType } from '@/features/finance/transactions/types/transaction';
 import type { Category } from '@/features/finance/categories/types/category';
 
@@ -46,7 +47,7 @@ export default function TransactionForm({
   const { rules } = useRules(projectId);
   const [title, setTitle] = useState(initialValues?.title ?? '');
   const [type, setType] = useState<TransactionType>(initialValues?.type ?? 'Receita');
-  const [categoryId, setCategoryId] = useState(initialValues?.categoryId ?? categories[0]?.id ?? '');
+  const [categoryId, setCategoryId] = useState(initialValues?.categoryId ?? resolveDefaultCategoryId(categories) ?? '');
   const [categoryTouched, setCategoryTouched] = useState(!!initialValues?.categoryId);
   const [amount, setAmount] = useState(initialValues?.amount?.toString() ?? '');
   const [date, setDate] = useState(initialValues?.date ?? todayISO());

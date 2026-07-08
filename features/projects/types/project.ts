@@ -1,4 +1,4 @@
-export type ProjectType = 'Pessoal' | 'Imóvel' | 'Negócios' | 'Viagem' | 'Outro';
+export type ProjectType = 'Pessoal' | 'Negócios' | 'Planejamento';
 
 export interface Project {
   id: string;
