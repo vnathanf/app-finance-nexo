@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, type DragEvent, type FormEvent } from 'react';
-import { Upload, X } from 'lucide-react';
+import { Upload, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import NexoButton from '@/components/nexo/NexoButton';
@@ -93,6 +93,16 @@ export default function AssetForm({
     setCustomFields((prev) => [...prev, { label: newFieldLabel.trim(), value: newFieldValue.trim() }]);
     setNewFieldLabel('');
     setNewFieldValue('');
+  };
+
+  const moveCustomField = (idx: number, direction: -1 | 1) => {
+    setCustomFields((prev) => {
+      const target = idx + direction;
+      if (target < 0 || target >= prev.length) return prev;
+      const next = [...prev];
+      [next[idx], next[target]] = [next[target], next[idx]];
+      return next;
+    });
   };
 
   const handleSubmit = (e: FormEvent) => {
@@ -247,7 +257,25 @@ export default function AssetForm({
           <div className="flex flex-wrap gap-1.5">
             {customFields.map((field, idx) => (
               <span key={idx} className="flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs font-medium">
+                <button
+                  type="button"
+                  onClick={() => moveCustomField(idx, -1)}
+                  disabled={idx === 0}
+                  className="text-muted-foreground hover:text-foreground disabled:opacity-30"
+                  aria-label="Mover antes"
+                >
+                  <ChevronLeft className="size-3" />
+                </button>
                 <strong>{field.label}:</strong> {field.value}
+                <button
+                  type="button"
+                  onClick={() => moveCustomField(idx, 1)}
+                  disabled={idx === customFields.length - 1}
+                  className="text-muted-foreground hover:text-foreground disabled:opacity-30"
+                  aria-label="Mover depois"
+                >
+                  <ChevronRight className="size-3" />
+                </button>
                 <button
                   type="button"
                   onClick={() => setCustomFields((prev) => prev.filter((_, i) => i !== idx))}
