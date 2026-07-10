@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { Upload, Repeat, CheckCircle2 } from 'lucide-react';
+import { Upload, Repeat, CheckCircle2, X } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
@@ -46,6 +46,9 @@ export default function ImportCsvDialog({ open, onOpenChange, projectId }: Impor
   const [selectionOverrides, setSelectionOverrides] = useState<Record<string, boolean>>({});
   const [isImporting, setIsImporting] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+
+  const notesColumns = mapping.notes ?? [];
+  const availableNotesHeaders = headers.filter((h) => !notesColumns.includes(h));
 
   const projectTransactions = useMemo(
     () => transactions.filter((t) => t.projectId === projectId),
@@ -240,21 +243,49 @@ export default function ImportCsvDialog({ open, onOpenChange, projectId }: Impor
                 <div className="space-y-1.5">
                   <label className="text-xs font-medium text-muted-foreground">Observação</label>
                   <Select
-                    value={mapping.notes ?? NO_COLUMN}
-                    onValueChange={(v) => setMapping({ ...mapping, notes: v === NO_COLUMN ? undefined : v })}
+                    value={NO_COLUMN}
+                    onValueChange={(v) => {
+                      if (v === NO_COLUMN) return;
+                      setMapping({ ...mapping, notes: [...notesColumns, v] });
+                    }}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Nenhuma" />
+                      <SelectValue placeholder="Adicionar coluna..." />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value={NO_COLUMN}>Nenhuma</SelectItem>
-                      {headers.map((h) => (
-                        <SelectItem key={h} value={h}>
-                          {h}
+                      {availableNotesHeaders.length === 0 ? (
+                        <SelectItem value={NO_COLUMN} disabled>
+                          Todas as colunas já selecionadas
                         </SelectItem>
-                      ))}
+                      ) : (
+                        availableNotesHeaders.map((h) => (
+                          <SelectItem key={h} value={h}>
+                            {h}
+                          </SelectItem>
+                        ))
+                      )}
                     </SelectContent>
                   </Select>
+                  {notesColumns.length > 0 && (
+                    <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                      {notesColumns.map((h) => (
+                        <span
+                          key={h}
+                          className="inline-flex items-center gap-1 rounded-md border border-border bg-muted px-2 py-0.5 text-xs font-medium"
+                        >
+                          {h}
+                          <button
+                            type="button"
+                            onClick={() => setMapping({ ...mapping, notes: notesColumns.filter((c) => c !== h) })}
+                            className="text-muted-foreground hover:text-destructive"
+                          >
+                            <X className="size-3" />
+                          </button>
+                        </span>
+                      ))}
+                      <p className="w-full text-[11px] text-muted-foreground">Concatenadas com " | ", nessa ordem.</p>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

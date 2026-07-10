@@ -66,17 +66,19 @@ export interface ColumnMapping {
   date: string;
   title: string;
   amount: string;
-  notes?: string;
+  /** Uma ou mais colunas — os valores são concatenados com " | ", nessa ordem. */
+  notes: string[];
 }
 
 /** Sugestão inicial de mapeamento por nome de coluna — o usuário confirma ou ajusta. */
 export function guessColumnMapping(headers: string[]): Partial<ColumnMapping> {
   const find = (re: RegExp) => headers.find((h) => re.test(h));
+  const notesGuess = find(/obs|nota|coment/i);
   return {
     date: find(/data|date/i),
     title: find(/descri|hist|title|memo/i),
     amount: find(/valor|amount|value/i),
-    notes: find(/obs|nota|coment/i),
+    notes: notesGuess ? [notesGuess] : [],
   };
 }
 
@@ -134,7 +136,11 @@ export function buildTransactionRows(rows: ParsedCsvRow[], mapping: ColumnMappin
     .map((row) => {
       const amount = parseAmount(row[mapping.amount] ?? '0');
       const date = parseDateToISO(row[mapping.date] ?? '');
-      const notes = mapping.notes ? row[mapping.notes]?.trim() || undefined : undefined;
+      const notes =
+        (mapping.notes ?? [])
+          .map((col) => row[col]?.trim())
+          .filter((v): v is string => !!v)
+          .join(' | ') || undefined;
 
       return {
         title: row[mapping.title] || 'Transação importada',
