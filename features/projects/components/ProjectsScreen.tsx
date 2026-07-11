@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { Eye, EyeOff } from 'lucide-react';
 import NexoPage from '@/components/nexo/NexoPage';
 import NexoLoading from '@/components/nexo/NexoLoading';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
@@ -11,13 +12,16 @@ import PendingInvitesBanner from '@/features/projects/collaboration/components/P
 import { useProjects } from '@/features/projects/hooks/useProjects';
 import { useTransactions } from '@/features/finance/transactions/hooks/useTransactions';
 import { useAssets } from '@/features/assets/hooks/useAssets';
+import { useValuesVisibility } from '@/contexts/ValuesVisibilityContext';
 import { deriveProjectsWithLiveTotals } from '@/utils/calculations';
 import { getMonthName, toMonthKey, todayISO } from '@/utils/date';
+import { cn } from '@/lib/utils';
 
 export default function ProjectsScreen() {
   const { projects, isLoading: isLoadingProjects } = useProjects();
   const { transactions, isLoading: isLoadingTx } = useTransactions();
   const { assets, isLoading: isLoadingAssets } = useAssets();
+  const { hidden, toggleHidden } = useValuesVisibility();
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedPeriod, setSelectedPeriod] = useState('todos');
@@ -74,7 +78,19 @@ export default function ProjectsScreen() {
   return (
     <NexoPage>
       <div className="mb-4 flex items-center justify-between gap-2">
-        <h1 className="text-2xl font-semibold">Projetos</h1>
+        <div className="flex items-center gap-1.5">
+          <h1 className="text-2xl font-semibold">Projetos</h1>
+          <button
+            onClick={toggleHidden}
+            aria-label={hidden ? 'Mostrar valores' : 'Ocultar valores'}
+            className={cn(
+              'rounded-md p-1.5 transition',
+              hidden ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted'
+            )}
+          >
+            {hidden ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+          </button>
+        </div>
         <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
           <SelectTrigger className="w-40 shrink-0">
             <SelectValue placeholder="Período" />
