@@ -17,7 +17,7 @@ import ImportCsvDialog from '@/features/finance/imports/components/ImportCsvDial
 import { useTransactions } from '@/features/finance/transactions/hooks/useTransactions';
 import { useCategories } from '@/features/finance/categories/hooks/useCategories';
 import { generatePureId } from '@/lib/utils';
-import { getMonthName, todayISO } from '@/utils/date';
+import { getMonthName, toMonthKey, todayISO } from '@/utils/date';
 import { resolveCategoryName } from '@/features/finance/categories/utils/category';
 import { getErrorMessage } from '@/utils/errors';
 
@@ -41,7 +41,7 @@ export default function TransactionsTab({ projectId, initialTypeFilter }: Transa
   const { categories } = useCategories();
 
   const [activeTab, setActiveTab] = useState<TransactionTypeTab>(initialTypeFilter ?? 'Todas');
-  const [month, setMonth] = useState('Todas');
+  const [month, setMonth] = useState(() => toMonthKey(todayISO()));
   const [categoryId, setCategoryId] = useState('Todas');
   const [searchQuery, setSearchQuery] = useState('');
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -63,8 +63,9 @@ export default function TransactionsTab({ projectId, initialTypeFilter }: Transa
   const months = useMemo(() => {
     const seen = new Set<string>();
     const options = [{ label: 'Todos', value: 'Todas' }];
-    for (const tx of projectTransactions) {
-      const key = tx.date.slice(0, 7);
+    const currentMonthKey = toMonthKey(todayISO());
+    const monthKeys = [currentMonthKey, ...projectTransactions.map((tx) => tx.date.slice(0, 7))];
+    for (const key of monthKeys) {
       const [year, monthNum] = key.split('-');
       if (!seen.has(key) && year && monthNum) {
         seen.add(key);

@@ -24,7 +24,7 @@ export default function ProjectsScreen() {
   const { hidden, toggleHidden } = useValuesVisibility();
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedPeriod, setSelectedPeriod] = useState('todos');
+  const [selectedPeriod, setSelectedPeriod] = useState(() => toMonthKey(todayISO()));
 
   const periodOptions = useMemo(() => {
     const monthKeys = new Set<string>([toMonthKey(todayISO()), ...transactions.map((t) => toMonthKey(t.date))]);

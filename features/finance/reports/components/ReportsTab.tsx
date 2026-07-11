@@ -52,7 +52,7 @@ export default function ReportsTab({ project }: ReportsTabProps) {
   const { assets, isLoading: isLoadingAssets } = useAssets();
   const { categories } = useCategories();
   const { saveProject, isSavingProject } = useProjects();
-  const [selectedPeriod, setSelectedPeriod] = useState('todos');
+  const [selectedPeriod, setSelectedPeriod] = useState(() => toMonthKey(todayISO()));
 
   const trend = useReports({ projectId });
 
