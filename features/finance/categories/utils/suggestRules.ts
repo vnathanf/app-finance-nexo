@@ -1,6 +1,7 @@
 import type { Transaction } from '@/features/finance/transactions/types/transaction';
 import type { Category } from '@/features/finance/categories/types/category';
 import type { Rule } from '@/features/finance/categories/types/rule';
+import { normalizeDescription } from '@/features/finance/categories/utils/normalizeDescription';
 
 export interface RuleSuggestion {
   keyword: string;
@@ -17,12 +18,13 @@ interface KeywordCategorySignal {
 const MIN_OCCURRENCES = 2;
 const MIN_DOMINANCE = 0.7;
 
+/** Tokeniza a partir da descrição já normalizada (sem código/autorização aleatória) — ver normalizeDescription. */
 function tokenize(title: string): string[] {
   return Array.from(
     new Set(
-      title
+      normalizeDescription(title)
         .toLowerCase()
-        .split(/[^\p{L}\p{N}]+/u)
+        .split(/\s+/)
         .filter((word) => word.length >= 3 && Number.isNaN(Number(word)))
     )
   );
@@ -134,4 +136,49 @@ export function suggestRules(
   }
 
   return suggestions.sort((a, b) => b.occurrences - a.occurrences).slice(0, 15);
+}
+
+interface CnpjCategorySignal {
+  categoryId: string;
+  occurrences: number;
+}
+
+/**
+ * Igual a buildKeywordSignal, mas indexado por CPF/CNPJ — chave mais estável
+ * que texto quando disponível, então basta uma ocorrência anterior categorizada
+ * (sem exigir mínimo de repetições como no sinal por palavra).
+ */
+export function buildCnpjSignal(transactions: Transaction[], categories: Category[]): Map<string, CnpjCategorySignal> {
+  const outrosId = categories.find((c) => c.name === 'Outros')?.id;
+  const byCategoryPerCnpj = new Map<string, Map<string, number>>();
+
+  for (const tx of transactions) {
+    if (!tx.cpfCnpj || !tx.categoryId || tx.categoryId === outrosId) continue;
+    const counts = byCategoryPerCnpj.get(tx.cpfCnpj) ?? new Map<string, number>();
+    counts.set(tx.categoryId, (counts.get(tx.categoryId) ?? 0) + 1);
+    byCategoryPerCnpj.set(tx.cpfCnpj, counts);
+  }
+
+  const signal = new Map<string, CnpjCategorySignal>();
+  for (const [cnpj, counts] of byCategoryPerCnpj) {
+    let dominantCategoryId: string | null = null;
+    let dominantCount = 0;
+    for (const [categoryId, count] of counts) {
+      if (count > dominantCount) {
+        dominantCount = count;
+        dominantCategoryId = categoryId;
+      }
+    }
+    if (dominantCategoryId) signal.set(cnpj, { categoryId: dominantCategoryId, occurrences: dominantCount });
+  }
+  return signal;
+}
+
+/** Sugere a categoria de um CPF/CNPJ avulso a partir do sinal do histórico do projeto. */
+export function suggestCategoryForCnpj(
+  cpfCnpj: string,
+  signal: Map<string, CnpjCategorySignal>
+): { categoryId: string } | null {
+  const match = signal.get(cpfCnpj);
+  return match ? { categoryId: match.categoryId } : null;
 }

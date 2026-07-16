@@ -10,4 +10,5 @@ export interface Transaction {
   /** YYYY-MM-DD */
   date: string;
   notes?: string;
+  cpfCnpj?: string;
 }

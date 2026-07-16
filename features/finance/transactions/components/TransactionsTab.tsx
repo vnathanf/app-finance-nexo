@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
-import { FileSpreadsheet, Plus, Sparkles, ListChecks, X, Trash2, Tag, Copy } from 'lucide-react';
+import { FileSpreadsheet, Download, Plus, Sparkles, ListChecks, X, Trash2, Tag, Copy } from 'lucide-react';
 import NexoLoading from '@/components/nexo/NexoLoading';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
@@ -14,6 +14,7 @@ import TransactionFilters, { type TransactionTab as TransactionTypeTab } from '.
 import TransactionList from './TransactionList';
 import TransactionForm from './TransactionForm';
 import ImportCsvDialog from '@/features/finance/imports/components/ImportCsvDialog';
+import ExportXlsxDialog from '@/features/finance/export/components/ExportXlsxDialog';
 import { useTransactions } from '@/features/finance/transactions/hooks/useTransactions';
 import { useCategories } from '@/features/finance/categories/hooks/useCategories';
 import { generatePureId } from '@/lib/utils';
@@ -47,6 +48,7 @@ export default function TransactionsTab({ projectId, initialTypeFilter }: Transa
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
   const [isImportOpen, setIsImportOpen] = useState(false);
+  const [isExportOpen, setIsExportOpen] = useState(false);
 
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -146,11 +148,19 @@ export default function TransactionsTab({ projectId, initialTypeFilter }: Transa
         </button>
         <button
           onClick={() => setIsImportOpen(true)}
-          aria-label="Importar extrato CSV"
-          title="Importar extrato CSV"
+          aria-label="Importar extrato"
+          title="Importar extrato"
           className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-border text-muted-foreground transition hover:bg-muted"
         >
           <FileSpreadsheet className="size-4" />
+        </button>
+        <button
+          onClick={() => setIsExportOpen(true)}
+          aria-label="Exportar para planilha"
+          title="Exportar para planilha"
+          className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-border text-muted-foreground transition hover:bg-muted"
+        >
+          <Download className="size-4" />
         </button>
         <Link
           href={`/dashboard/transacoes/categorias?projectId=${projectId}`}
@@ -259,6 +269,13 @@ export default function TransactionsTab({ projectId, initialTypeFilter }: Transa
       </Dialog>
 
       <ImportCsvDialog open={isImportOpen} onOpenChange={setIsImportOpen} projectId={projectId} />
+
+      <ExportXlsxDialog
+        open={isExportOpen}
+        onOpenChange={setIsExportOpen}
+        transactions={projectTransactions}
+        categories={categories}
+      />
 
       <ConfirmDialog
         open={isBulkDeleteOpen}

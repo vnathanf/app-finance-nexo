@@ -7,18 +7,26 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@
 import { Input } from '@/components/ui/input';
 import NexoButton from '@/components/nexo/NexoButton';
 import Currency from '@/components/common/Currency';
+import { cn } from '@/lib/utils';
 import { useCsvImport } from '@/features/finance/imports/hooks/useCsvImport';
+import { useImportTemplates } from '@/features/finance/imports/hooks/useImportTemplates';
 import { useTransactions } from '@/features/finance/transactions/hooks/useTransactions';
 import { useCategories } from '@/features/finance/categories/hooks/useCategories';
 import { useRules } from '@/features/finance/categories/hooks/useRules';
 import { matchRuleForTitle } from '@/features/finance/categories/utils/matchRule';
 import { resolveDefaultCategoryId } from '@/features/finance/categories/utils/category';
-import { suggestRules, buildKeywordSignal, suggestCategoryForTitle } from '@/features/finance/categories/utils/suggestRules';
+import {
+  suggestRules,
+  buildKeywordSignal,
+  suggestCategoryForTitle,
+  buildCnpjSignal,
+  suggestCategoryForCnpj,
+} from '@/features/finance/categories/utils/suggestRules';
 import RuleSuggestionsList from '@/features/finance/categories/components/RuleSuggestionsList';
 import { expandInstallmentSeries } from '@/features/finance/imports/utils/csv';
 import { generatePureId } from '@/lib/utils';
 import { getErrorMessage } from '@/utils/errors';
-import type { ImportedTransactionRow } from '@/features/finance/imports/utils/csv';
+import type { ColumnMapping, ImportedTransactionRow } from '@/features/finance/imports/utils/csv';
 
 interface ImportCsvDialogProps {
   open: boolean;
@@ -28,6 +36,7 @@ interface ImportCsvDialogProps {
 }
 
 const NO_COLUMN = '__none__';
+const NO_TEMPLATE = '__manual__';
 
 interface InstallmentDraft {
   enabled: boolean;
@@ -36,14 +45,30 @@ interface InstallmentDraft {
 }
 
 export default function ImportCsvDialog({ open, onOpenChange, projectId }: ImportCsvDialogProps) {
-  const { headers, rows, mapping, setMapping, isMappingComplete, isParsing, error, importFile, reset } =
-    useCsvImport();
+  const {
+    preview,
+    headerRowIndex,
+    setHeaderRowIndex,
+    headers,
+    rows,
+    ignoredRows,
+    mapping,
+    setMapping,
+    applyTemplate,
+    isMappingComplete,
+    isParsing,
+    error,
+    importFile,
+    reset,
+  } = useCsvImport();
   const { transactions, saveTransaction } = useTransactions();
   const { categories } = useCategories();
   const { rules, addRule, isSavingRule } = useRules(projectId);
+  const { templates, saveTemplate, isSavingTemplate } = useImportTemplates(projectId);
   const [installmentDrafts, setInstallmentDrafts] = useState<Record<number, InstallmentDraft>>({});
   const [categoryOverrides, setCategoryOverrides] = useState<Record<string, string>>({});
   const [selectionOverrides, setSelectionOverrides] = useState<Record<string, boolean>>({});
+  const [templateName, setTemplateName] = useState('');
   const [isImporting, setIsImporting] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
@@ -59,6 +84,7 @@ export default function ImportCsvDialog({ open, onOpenChange, projectId }: Impor
     () => buildKeywordSignal(projectTransactions, categories, rules),
     [projectTransactions, categories, rules]
   );
+  const cnpjSignal = useMemo(() => buildCnpjSignal(projectTransactions, categories), [projectTransactions, categories]);
 
   // Sugestões combinam o histórico do projeto com os títulos do próprio CSV
   // sendo importado — pega comerciantes novos que se repetem no arquivo.
@@ -99,8 +125,15 @@ export default function ImportCsvDialog({ open, onOpenChange, projectId }: Impor
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rows, installmentDrafts]);
 
+  // Duplicata é sempre um aviso, nunca um bloqueio — quando os dois lados têm
+  // CPF/CNPJ, ele entra na comparação (mais preciso); sem ele, cai pra
+  // título+data+valor como antes.
   const isDuplicate = (row: ImportedTransactionRow) =>
-    projectTransactions.some((t) => t.title === row.title && t.date === row.date && t.amount === row.amount);
+    projectTransactions.some((t) => {
+      if (t.title !== row.title || t.date !== row.date || t.amount !== row.amount) return false;
+      if (row.cpfCnpj && t.cpfCnpj) return t.cpfCnpj === row.cpfCnpj;
+      return true;
+    });
 
   // Selecionada por padrão, a menos que já exista uma transação igual no
   // projeto (título + data + valor) — é o que garante que, numa compra
@@ -113,10 +146,17 @@ export default function ImportCsvDialog({ open, onOpenChange, projectId }: Impor
 
   const selectedCount = flatRows.filter(({ key, row }) => isRowSelected(key, row)).length;
 
+  // Cascata: override manual da sessão → regra de palavra-chave curada →
+  // padrão por CNPJ (histórico do projeto) → padrão por texto normalizado
+  // (histórico do projeto) → "Outros"/sem categoria.
   const getRowCategoryId = (key: string, row: ImportedTransactionRow) => {
     if (categoryOverrides[key]) return categoryOverrides[key];
     const ruleMatch = matchRuleForTitle(rules, row.title);
     if (ruleMatch) return ruleMatch;
+    if (row.cpfCnpj) {
+      const cnpjMatch = suggestCategoryForCnpj(row.cpfCnpj, cnpjSignal);
+      if (cnpjMatch) return cnpjMatch.categoryId;
+    }
     const historyMatch = suggestCategoryForTitle(row.title, keywordSignal);
     return historyMatch?.categoryId ?? resolveDefaultCategoryId(categories) ?? '';
   };
@@ -127,6 +167,7 @@ export default function ImportCsvDialog({ open, onOpenChange, projectId }: Impor
     setInstallmentDrafts({});
     setCategoryOverrides({});
     setSelectionOverrides({});
+    setTemplateName('');
   };
 
   const handleClose = (nextOpen: boolean) => {
@@ -135,6 +176,12 @@ export default function ImportCsvDialog({ open, onOpenChange, projectId }: Impor
       setSaveError(null);
     }
     onOpenChange(nextOpen);
+  };
+
+  const handleSaveTemplate = async () => {
+    if (!templateName.trim() || !isMappingComplete) return;
+    await saveTemplate(templateName.trim(), headerRowIndex, mapping as ColumnMapping);
+    setTemplateName('');
   };
 
   const handleConfirm = async () => {
@@ -152,6 +199,7 @@ export default function ImportCsvDialog({ open, onOpenChange, projectId }: Impor
           amount: row.amount,
           date: row.date,
           notes: row.notes,
+          cpfCnpj: row.cpfCnpj,
         });
       }
       resetAll();
@@ -167,19 +215,19 @@ export default function ImportCsvDialog({ open, onOpenChange, projectId }: Impor
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-h-[85vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Importar extrato CSV</DialogTitle>
+          <DialogTitle>Importar extrato</DialogTitle>
         </DialogHeader>
 
-        {headers.length === 0 ? (
+        {preview.length === 0 ? (
           <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border p-8 text-center transition hover:bg-muted">
             <Upload className="size-6 text-muted-foreground" />
             <p className="text-sm font-medium">
-              {isParsing ? 'Lendo arquivo...' : 'Arraste um .csv ou clique para escolher'}
+              {isParsing ? 'Lendo arquivo...' : 'Arraste um .csv ou .xlsx ou clique para escolher'}
             </p>
-            <p className="text-xs text-muted-foreground">Você escolhe quais colunas usar no próximo passo</p>
+            <p className="text-xs text-muted-foreground">Você escolhe o cabeçalho e as colunas no próximo passo</p>
             <input
               type="file"
-              accept=".csv"
+              accept=".csv,.xlsx,.xls"
               className="hidden"
               onChange={(e) => {
                 const file = e.target.files?.[0];
@@ -189,6 +237,62 @@ export default function ImportCsvDialog({ open, onOpenChange, projectId }: Impor
           </label>
         ) : (
           <div className="space-y-4">
+            {templates.length > 0 && (
+              <div className="space-y-1.5 rounded-xl border border-border p-3">
+                <label className="text-xs font-medium text-muted-foreground">Usar template salvo</label>
+                <Select
+                  value={NO_TEMPLATE}
+                  onValueChange={(v) => {
+                    if (v === NO_TEMPLATE) return;
+                    const tmpl = templates.find((t) => t.id === v);
+                    if (tmpl) applyTemplate(tmpl);
+                  }}
+                >
+                  <SelectTrigger className="h-8 text-xs">
+                    <SelectValue placeholder="Mapear manualmente" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={NO_TEMPLATE}>Mapear manualmente</SelectItem>
+                    {templates.map((t) => (
+                      <SelectItem key={t.id} value={t.id}>
+                        {t.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            <div className="space-y-2 rounded-xl border border-border p-3">
+              <p className="text-sm font-semibold">Qual linha é o cabeçalho?</p>
+              <p className="text-xs text-muted-foreground">
+                Linhas acima dela (ex: nome da conta, período) são ignoradas.
+              </p>
+              <div className="max-h-36 space-y-1 overflow-y-auto">
+                {preview.map((row, idx) => (
+                  <label
+                    key={idx}
+                    className={cn(
+                      'flex cursor-pointer items-center gap-2 rounded-md border px-2 py-1 text-xs',
+                      idx === headerRowIndex
+                        ? 'border-primary bg-primary/5 font-medium'
+                        : 'border-transparent text-muted-foreground hover:bg-muted',
+                      idx < headerRowIndex && 'opacity-50 line-through'
+                    )}
+                  >
+                    <input
+                      type="radio"
+                      name="header-row"
+                      checked={idx === headerRowIndex}
+                      onChange={() => setHeaderRowIndex(idx)}
+                      className="size-3.5 shrink-0"
+                    />
+                    <span className="truncate">{row.filter(Boolean).join(' | ') || '(linha vazia)'}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
             <div className="space-y-2 rounded-xl border border-border p-3">
               <p className="text-sm font-semibold">Quais colunas usar?</p>
               <div className="grid grid-cols-2 gap-3">
@@ -241,6 +345,26 @@ export default function ImportCsvDialog({ open, onOpenChange, projectId }: Impor
                 </div>
 
                 <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-muted-foreground">CPF/CNPJ</label>
+                  <Select
+                    value={mapping.cpfCnpj ?? NO_COLUMN}
+                    onValueChange={(v) => setMapping({ ...mapping, cpfCnpj: v === NO_COLUMN ? undefined : v })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Coluna" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={NO_COLUMN}>Nenhuma</SelectItem>
+                      {headers.map((h) => (
+                        <SelectItem key={h} value={h}>
+                          {h}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="col-span-2 space-y-1.5">
                   <label className="text-xs font-medium text-muted-foreground">Observação</label>
                   <Select
                     value={NO_COLUMN}
@@ -289,6 +413,43 @@ export default function ImportCsvDialog({ open, onOpenChange, projectId }: Impor
                 </div>
               </div>
             </div>
+
+            {isMappingComplete && (
+              <div className="flex items-center gap-2 rounded-xl border border-dashed border-border p-3">
+                <Input
+                  value={templateName}
+                  onChange={(e) => setTemplateName(e.target.value)}
+                  placeholder="Nome do template (ex: Extrato Banco X)"
+                  className="h-8 text-xs"
+                />
+                <NexoButton
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={!templateName.trim()}
+                  loading={isSavingTemplate}
+                  onClick={handleSaveTemplate}
+                >
+                  Salvar como template
+                </NexoButton>
+              </div>
+            )}
+
+            {ignoredRows.length > 0 && (
+              <details className="rounded-xl border border-border p-3 text-xs text-muted-foreground">
+                <summary className="cursor-pointer font-medium text-foreground">
+                  {ignoredRows.length} linha{ignoredRows.length > 1 ? 's' : ''} de saldo/rendimento ignorada
+                  {ignoredRows.length > 1 ? 's' : ''}
+                </summary>
+                <ul className="mt-1.5 space-y-0.5">
+                  {ignoredRows.map((r, i) => (
+                    <li key={i}>
+                      {r.date} — {r.title}
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            )}
 
             {isMappingComplete && rows.length > 0 && suggestions.length > 0 && (
               <div className="space-y-2 rounded-xl border border-border p-3">

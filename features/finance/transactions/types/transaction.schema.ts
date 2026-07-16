@@ -8,4 +8,5 @@ export const transactionSchema = z.object({
   amount: z.number().positive('O valor deve ser maior que zero'),
   date: z.string().min(1, 'Informe uma data'),
   notes: z.string().optional(),
+  cpfCnpj: z.string().optional(),
 });

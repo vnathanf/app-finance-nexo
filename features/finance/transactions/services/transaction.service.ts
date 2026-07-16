@@ -12,6 +12,7 @@ function fromDB(row: DBTransaction): Transaction {
     amount: row.amount,
     date: row.date,
     notes: row.notes ?? undefined,
+    cpfCnpj: row.cpf_cnpj ?? undefined,
   };
 }
 
@@ -26,6 +27,7 @@ function toDB(tx: Transaction, ownerId: string): DBTransaction {
     amount: tx.amount || 0,
     date: tx.date || '',
     notes: tx.notes || null,
+    cpf_cnpj: tx.cpfCnpj || null,
   };
 }
 

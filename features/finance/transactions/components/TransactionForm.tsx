@@ -26,6 +26,7 @@ export interface TransactionFormValues {
   amount: number;
   date: string;
   notes?: string;
+  cpfCnpj?: string;
 }
 
 interface TransactionFormProps {
@@ -57,6 +58,7 @@ export default function TransactionForm({
   const [amount, setAmount] = useState(initialValues?.amount?.toString() ?? '');
   const [date, setDate] = useState(initialValues?.date ?? todayISO());
   const [notes, setNotes] = useState(initialValues?.notes ?? '');
+  const [cpfCnpj, setCpfCnpj] = useState(initialValues?.cpfCnpj ?? '');
   const [error, setError] = useState<string | null>(null);
   const [isCreatingCategory, setIsCreatingCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
@@ -100,6 +102,7 @@ export default function TransactionForm({
       amount: parseFloat(amount),
       date,
       notes: notes.trim() || undefined,
+      cpfCnpj: cpfCnpj.trim() || undefined,
     });
     if (!result.success) {
       setError(result.error.issues[0]?.message ?? 'Dados inválidos');
@@ -222,6 +225,15 @@ export default function TransactionForm({
       <div className="space-y-1.5">
         <label className="text-sm font-medium">Data</label>
         <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
+      </div>
+
+      <div className="space-y-1.5">
+        <label className="text-sm font-medium">CPF/CNPJ (opcional)</label>
+        <Input
+          value={cpfCnpj}
+          onChange={(e) => setCpfCnpj(e.target.value)}
+          placeholder="Do favorecido/pagador, se conhecido"
+        />
       </div>
 
       <div className="space-y-1.5">

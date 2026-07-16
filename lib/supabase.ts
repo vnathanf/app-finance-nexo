@@ -38,6 +38,7 @@ export interface DBTransaction {
   amount: number;
   date: string;
   notes?: string | null;
+  cpf_cnpj?: string | null;
 }
 
 export interface DBCategory {
@@ -54,6 +55,22 @@ export interface DBRule {
   category_id: string;
   confidence: string;
   frequency: string;
+}
+
+export interface DBImportTemplate {
+  id: string;
+  owner_id: string;
+  project_id: string;
+  name: string;
+  header_row_index: number;
+  column_mapping: {
+    date: string;
+    title: string;
+    amount: string;
+    cpfCnpj?: string;
+    saldo?: string;
+    notes: string[];
+  };
 }
 
 export interface DBAsset {
