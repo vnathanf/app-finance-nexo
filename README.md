@@ -1,20 +1,17 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://ai.google.dev/static/site-assets/images/share-ais-513315318.png" />
-</div>
+# Nexo Finance
 
-# Run and deploy your AI Studio app
+Gestão de patrimônio, projetos financeiros e transações de forma intuitiva, moderna e conectada.
 
-This contains everything you need to run your app locally.
+## Rodando localmente
 
-View your app in AI Studio: https://ai.studio/apps/ce851f49-3028-41fc-a9c8-4b7769ce40b7
+**Pré-requisitos:** Node.js
 
-## Run Locally
-
-**Prerequisites:**  Node.js
-
-
-1. Install dependencies:
+1. Instale as dependências:
    `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
+2. Configure `NEXT_PUBLIC_SUPABASE_URL` e `NEXT_PUBLIC_SUPABASE_ANON_KEY` em `.env.local` (painel do Supabase → Project Settings → API)
+3. Rode o app:
    `npm run dev`
+
+## Banco de dados
+
+As migrations SQL ficam em `supabase/migrations/`, em ordem — rode cada uma no SQL Editor do Supabase (Painel → SQL Editor → New query) na sequência.

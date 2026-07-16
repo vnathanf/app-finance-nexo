@@ -94,7 +94,7 @@ Fluxo: `Page → Componente de feature → Hooks da feature → Services da feat
 - `app/components/PWARegister.tsx` foi movido pra `components/common/` (app/ só pode ter rotas)
 - `npx tsc --noEmit` passa limpo em tudo isso (rodei antes de parar)
 
-**Ainda vazios / stubs**: `components/{projects,transactions,assets,reports}/*.tsx` (exceto os que citei acima), `components/charts/*`, `components/forms/*`, `hooks/use-mobile.ts` e `hooks/useLocalStorage.ts`/`useDebounce.ts` (triviais, resolver por último), `lib/auth.ts`/`lib/storage.ts` (provavelmente lixo do Firebase antigo — conferir se algo importa antes de apagar).
+**Ainda vazios / stubs**: `components/{projects,transactions,assets,reports}/*.tsx` (exceto os que citei acima), `components/charts/*`, `components/forms/*`, `hooks/use-mobile.ts` e `hooks/useLocalStorage.ts`/`useDebounce.ts` (triviais, resolver por último).
 
 ## 3. O que falta: fatiar `app/page.tsx`
 
@@ -143,8 +143,6 @@ Ordem sugerida (da mais simples pra mais arriscada): `dashboard` → `transactio
 ## 4. Quando `app/page.tsx` estiver vazio
 
 - Trocar `app/page.tsx` (rota `/`) pra redirecionar: se usuário logado → `/dashboard`, senão → `/login` (usar `useAuth()` de `contexts/AuthContext.tsx`).
-- Apagar o `OperationType`/`handleFirestoreError`/`_currentUser` que sobraram do Firebase antigo (já não deveriam ser necessários — o app usa Supabase).
-- Conferir se `lib/auth.ts` e `lib/storage.ts` ainda são usados por alguma coisa; se não, apagar.
 - Rodar `npm run build` completo (não só `tsc --noEmit`) pra pegar qualquer coisa que só aparece em build de produção.
 
 ## 5. Observações importantes
